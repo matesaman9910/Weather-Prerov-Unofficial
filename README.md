@@ -2,7 +2,7 @@
 
 A minimalist, mobile-first weather site focused on **“Will it rain in Přerov today?”**  
 
-🔗 **Live site (GitHub Pages):** https://<your-username>.github.io/<your-repo>  
+🔗 **Live site (GitHub Pages):** [Website](https://matesaman9910.github.io/Weather-Prerov-Unofficial/Weather.html)
 
 ---
 
