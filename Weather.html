@@ -3,44 +3,61 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Přerov Weather — Rain‑First</title>
-  <meta name="description" content="YES/NO rain for Přerov — start • peak • end. Hourly precip, hourly temp+wind, 7‑day outlook, UV now/max, sun+moon (with phase), air quality, pollen, pressure trend, radar. Mobile‑first with subtle animations." />
+  <title>Přerov Weather — Rain-First</title>
+  <meta name="description" content="YES/NO rain for Přerov — start • peak • end. Hourly precip, hourly temp+wind, 7-day outlook, UV, sun+moon, air quality, pollen, pressure trend, radar. Mobile-first." />
   <meta name="theme-color" content="#0b1020">
+  <!-- CSP fit for GitHub Pages (tighten if you externalize assets) -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; connect-src 'self' https://api.open-meteo.com https://air-quality-api.open-meteo.com https://weatherwebsiteprerov.matejkratochvilbilina.workers.dev; img-src 'self' data:; style-src 'self' 'unsafe-inline'; frame-src https://radar.bourky.cz; base-uri 'none'; form-action 'none'">
+
   <style>
-    :root{ --bg:#0b1020; --card:#111731; --ink:#e8ecff; --muted:#b6c0ff; --line:#2b345c; --ok:#22c55e; --warn:#f59e0b; --bad:#ef4444; --accent:#77a8ff; --radius:18px }
+    :root{
+      --bg:#0b1020; --card:#111731; --ink:#e8ecff; --muted:#b6c0ff; --line:#2b345c;
+      --ok:#22c55e; --warn:#f59e0b; --bad:#ef4444; --accent:#77a8ff; --radius:18px;
+      --glow: transparent; --glowAlpha: 0; /* set by alert level */
+    }
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Helvetica Neue,Noto Sans,Arial;color:var(--ink);
+    body{
+      margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Helvetica Neue,Noto Sans,Arial;color:var(--ink);
       background:
         radial-gradient(1100px 700px at 10% -10%, #243056 10%, transparent 60%),
         radial-gradient(900px 700px at 110% 10%, #1a1f35 5%, transparent 60%),
         linear-gradient(180deg,#0b1020,#0a0f1e);
       animation:bgShift 14s ease-in-out infinite alternate;
+      position:relative;
+    }
+    /* Edge glow overlay (only visible if --glowAlpha > 0) */
+    body::after{
+      content:""; pointer-events:none; position:fixed; inset:0; z-index:0;
+      background:
+        radial-gradient(1200px 200px at 50% -100px, color-mix(in oklab, var(--glow) 70%, transparent) var(--glowAlpha), transparent 70%),
+        radial-gradient(1200px 200px at 50% calc(100% + 100px), color-mix(in oklab, var(--glow) 70%, transparent) var(--glowAlpha), transparent 70%),
+        radial-gradient(200px 1200px at -100px 50%, color-mix(in oklab, var(--glow) 70%, transparent) var(--glowAlpha), transparent 70%),
+        radial-gradient(200px 1200px at calc(100% + 100px) 50%, color-mix(in oklab, var(--glow) 70%, transparent) var(--glowAlpha), transparent 70%);
+      opacity: .95;
     }
     @keyframes bgShift { from{ background-position:0 0, 0 0, 0 0; } to{ background-position:20px -10px, -20px 10px, 0 0; } }
     a{color:var(--accent)}
-
-    /* Layout: wider, centered, breathable */
-    .wrap{max-width:1240px;margin:0 auto;padding:22px}
+    .wrap{max-width:1240px;margin:0 auto;padding:22px; position:relative; z-index:1}
     .row{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
     .hero{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(360px,1fr))}
-
     .card{background:linear-gradient(180deg,#16203b,#0f1630);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:0 10px 30px #0006; opacity:0; transform:translateY(8px); transition:opacity .5s ease, transform .5s ease}
     .card.reveal{opacity:1; transform:translateY(0)}
     h1{margin:0;font-size:clamp(22px,2.6vw,32px)} h2{margin:0 0 10px 0;font-size:20px}
     .sub{color:var(--muted);font-size:14px}
 
-    .topbar{position:sticky;top:0;z-index:10; padding-top:8px; backdrop-filter:blur(6px)}
+    .topbar{position:sticky;top:0;z-index:20; padding-top:8px; backdrop-filter:blur(6px)}
     .barRow{display:flex;gap:10px;align-items:stretch;justify-content:space-between;margin-bottom:12px}
     .banner{flex:1;display:flex;gap:12px;align-items:flex-start;justify-content:center;border:1px solid var(--line);border-radius:16px;padding:14px 16px;line-height:1.25; font-size:clamp(15px,3.2vw,19px);
-      white-space:normal; overflow:visible; text-overflow:clip; min-height:auto; box-shadow:inset 0 0 0 1px #0003}
+      max-height:64px; overflow:hidden; box-shadow:inset 0 0 0 1px #0003}
+    .banner.expand{max-height:none}
     .banner .ico{font-size:22px; line-height:1}
     .banner.green{background:#0f2818;color:#c9ffe0;border-color:#1b5e33}
     .banner.yellow{background:#2e2609;color:#ffe7b5;border-color:#7a5c12}
     .banner.orange{background:#2e1b08;color:#ffd6b3;border-color:#9c5416}
     .banner.red{background:#2d0d0d;color:#ffd0d0;border-color:#8a1f1f}
     .banner.gray{background:#0f1430;color:#c5d1ff;border-color:#323c6c}
+    #alertText{display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
 
     .answer{font-weight:800;letter-spacing:.6px;font-size:clamp(34px,7vw,60px);padding:12px 16px;border-radius:16px;background:#1a2344;min-width:170px;text-align:center;border:1px solid var(--line)}
     .answer.ok{background:#142a1b;border-color:#1b5e33}
@@ -63,7 +80,6 @@
     .level.orange{background:#2e1b08;color:#ffd6b3;border-color:#9c5416}
     .level.red{background:#2d0d0d;color:#ffd0d0;border-color:#8a1f1f}
 
-    /* 7‑day: centered, larger tiles */
     .days{display:flex; flex-wrap:wrap; justify-content:center; gap:12px; padding:6px 6px 10px}
     .day{min-width:140px; background:#0f1731; border:1px solid var(--line); border-radius:14px; padding:12px; text-align:center}
     .day .w{font-size:28px; margin:2px 0}
@@ -77,6 +93,13 @@
 
     footer{color:#9fb0ff8c;font-size:12px;margin:22px 0 8px;line-height:1.6;text-align:center}
 
+    /* Mobile perf clamps */
+    @media (max-width: 480px){
+      .chart{height:200px}
+      .chartSmall{height:160px}
+      .card{padding:14px}
+      .banner{max-height:56px}
+    }
     @media (prefers-reduced-motion: reduce){ .card{transition:none} body{animation:none} }
   </style>
 </head>
@@ -94,8 +117,8 @@
 
     <header style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px">
       <div>
-        <h1 style="letter-spacing:.3px">Přerov Weather — Rain‑First</h1>
-        <div class="sub">YES only when it will actually rain — start • peak • end. Mobile‑friendly. Subtle animations.</div>
+        <h1 style="letter-spacing:.3px">Přerov Weather — Rain-First</h1>
+        <div class="sub">YES only when it will actually rain — start • peak • end. Mobile-friendly. Subtle animations.</div>
       </div>
       <button id="shareBtn" class="btn" title="Share today’s status">Share</button>
     </header>
@@ -131,12 +154,12 @@
       <div class="card">
         <h2>📈 Hourly precip (next 24h)</h2>
         <canvas id="rainChart" class="chart" aria-label="Hourly precipitation"></canvas>
-        <div class="sub">Bars: precipitation (mm). Line: probability (%). Rain threshold: ≥0.2 mm/h or ≥60% PoP. YES shows only if any hour crosses threshold.</div>
+        <div class="sub">Bars: precipitation (mm). Line: probability (%). YES only if ≥0.2 mm/h or ≥60% PoP.</div>
       </div>
       <div class="card">
         <h2>🌡️ Hourly temperature & wind (next 24h)</h2>
         <canvas id="tempWindChart" class="chartSmall" aria-label="Hourly temperature and wind"></canvas>
-        <div class="sub">Line: temperature (°C). Bars: wind speed (km/h). Useful for comfort planning.</div>
+        <div class="sub">Line: temperature (°C). Bars: wind speed (km/h).</div>
       </div>
     </section>
 
@@ -150,7 +173,7 @@
         <div class="sub" id="dailyTip" style="margin-top:10px"></div>
       </div>
       <div class="card">
-        <h2>🗓️ 7‑day outlook</h2>
+        <h2>🗓️ 7-day outlook</h2>
         <div class="days" id="daysStrip" aria-label="7 day forecast"></div>
       </div>
     </section>
@@ -168,7 +191,7 @@
         <div class="radarWrap" id="radarWrap">
           <button id="radarToggle" class="btn">Show live radar</button>
           <div id="radarSlot"></div>
-          <div class="sub">If the embed is blocked by provider policy, use: <a id="radarOpenLink" href="#" target="_blank" rel="noopener">Open radar</a>.</div>
+          <div class="sub">If embed is blocked, use: <a id="radarOpenLink" href="#" target="_blank" rel="noopener">Open radar</a>.</div>
         </div>
       </div>
     </section>
@@ -191,381 +214,453 @@
     </section>
 
     <footer>
-      <strong>Disclaimer.</strong> Experimental hobby project. Not official. No guarantee of accuracy, timeliness, or availability. Do not use for safety‑critical decisions. Verify with ČHMÚ & Meteoalarm.<br/>
-      <strong>Data.</strong> Open‑Meteo (forecast, AQ, pollen). Alerts via Meteoalarm (proxied). Radar © ČHMÚ & partners. No personal data is collected.<br/>
+      <strong>Disclaimer.</strong> Experimental hobby project. Not official. No guarantee of accuracy, timeliness, or availability. Verify with ČHMÚ & Meteoalarm.<br/>
+      <strong>Data.</strong> Open-Meteo (forecast, AQ, pollen). Alerts via Meteoalarm (proxied). Radar © ČHMÚ & partners. No personal data is collected.<br/>
       <strong>Contact.</strong> Support: <a href="mailto:matesaman9910@gmail.com">matesaman9910@gmail.com</a> • <strong>Copyright.</strong> © 2025 matesaman9910. All rights reserved.
     </footer>
   </div>
 
-<script src="https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.js" defer></script>
-<script>
-// ===== Config =====
-const LAT = 49.4551, LON = 17.4509; // Přerov
-const PROXY_BASE = 'https://weatherwebsiteprerov.matejkratochvilbilina.workers.dev';
-const APP_VER = '1.8';
-const LOCALE = navigator.language || 'cs-CZ';
-const RADAR_URL = `https://radar.bourky.cz/index.php?img_to_load=10&lat=${LAT.toFixed(5)}&lon=${LON.toFixed(5)}&zoom=10&map_id=1&anim=1&repeat=0&last=0&l_type=0&l_res=0&fcst=1&prod=0&r_opa=25&l_opa=16&b_opa=100&menu_weather=0&menu_weathergraphs=0&menu_webcam=0&menu_cells=0&menu_blitzortung=0&menu_sivs=0&menu_estofex=0&menu_metar=0&menu_planes=0&menu_hydro=0&menu_aero=0&menu_radars=0&menu_wind=0&menu_airquality=0&menu_chasers=0&menu_daynight=1&synop_selected=T&gps=false`;
+  <script src="https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.js" defer></script>
+  <script>
+  // ===== Config =====
+  const LAT = 49.4551, LON = 17.4509; // Přerov
+  const PROXY_BASE = 'https://weatherwebsiteprerov.matejkratochvilbilina.workers.dev';
+  const APP_VER = '1.9';
+  const LOCALE = navigator.language || 'cs-CZ';
+  const RADAR_URL = `https://radar.bourky.cz/index.php?img_to_load=10&lat=${LAT.toFixed(5)}&lon=${LON.toFixed(5)}&zoom=10&map_id=1&anim=1&repeat=0&last=0&l_type=0&l_res=0&fcst=1&prod=0&r_opa=25&l_opa=16&b_opa=100&menu_weather=0&menu_weathergraphs=0&menu_webcam=0&menu_cells=0&menu_blitzortung=0&menu_sivs=0&menu_estofex=0&menu_metar=0&menu_planes=0&menu_hydro=0&menu_aero=0&menu_radars=0&menu_wind=0&menu_airquality=0&menu_chasers=0&menu_daynight=1&synop_selected=T&gps=false`;
 
-// ===== Helpers =====
-const $ = (id)=> document.getElementById(id);
-const pad = (n)=> String(n).padStart(2,'0');
-const dayKey = (d)=> `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-const hourKeyLocal = (d)=> `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}`;
-const fmtTime = (s)=> { try{ const d=new Date(s); return d.toLocaleTimeString(LOCALE, {hour:'2-digit',minute:'2-digit'});}catch{ return '—'; } };
-const fmtDay = (s)=> { try{ const d=new Date(s); return d.toLocaleDateString(LOCALE, {weekday:'short'});}catch{ return '—'; } };
+  // perf flags
+  const LOW_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+                  || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4);
 
-function setAnswer(node, text, lvl){ node.textContent=text; node.className = 'answer '+(lvl||''); }
-function findCurrentHourIndex(times){
-  const now = new Date(); const key = hourKeyLocal(now);
-  const idx = times.findIndex(t => String(t).slice(0,13) === key);
-  if(idx!==-1) return idx;
-  let best=0,bestDiff=1e15; for(let i=0;i<times.length;i++){ const d=Math.abs(new Date(times[i])-now); if(d<bestDiff){bestDiff=d;best=i;} }
-  return best;
-}
-function groupHoursByDay(times, payload){
-  const out={};
-  for(let i=0;i<times.length;i++){
-    const key = dayKey(new Date(times[i]));
-    (out[key] ||= []).push({
-      time: times[i],
-      precipitation: payload.precipitation?.[i],
-      precipitation_probability: payload.precipitation_probability?.[i],
-      rain: payload.rain?.[i], showers: payload.showers?.[i],
-      temperature_2m: payload.temperature_2m?.[i], relative_humidity_2m: payload.relative_humidity_2m?.[i],
-      cloud_cover: payload.cloud_cover?.[i], pressure_msl: payload.pressure_msl?.[i],
-      wind_speed_10m: payload.wind_speed_10m?.[i], wind_gusts_10m: payload.wind_gusts_10m?.[i],
-      uv_index: payload.uv_index?.[i],
+  // ===== Helpers =====
+  const $ = (id)=> document.getElementById(id);
+  const pad = (n)=> String(n).padStart(2,'0');
+  const dayKey = (d)=> `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const hourKeyLocal = (d)=> `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}`;
+  const fmtTime = (s)=> { try{ const d=new Date(s); return d.toLocaleTimeString(LOCALE, {hour:'2-digit',minute:'2-digit'});}catch{ return '—'; } };
+  const fmtDay = (s)=> { try{ const d=new Date(s); return d.toLocaleDateString(LOCALE, {weekday:'short'});}catch{ return '—'; } };
+
+  function setAnswer(node, text, lvl){ node.textContent=text; node.className = 'answer '+(lvl||''); }
+  function findCurrentHourIndex(times){
+    const now = new Date(); const key = hourKeyLocal(now);
+    const idx = times.findIndex(t => String(t).slice(0,13) === key);
+    if(idx!==-1) return idx;
+    let best=0,bestDiff=1e15; for(let i=0;i<times.length;i++){ const d=Math.abs(new Date(times[i])-now); if(d<bestDiff){bestDiff=d;best=i;} }
+    return best;
+  }
+  function groupHoursByDay(times, payload){
+    const out={};
+    for(let i=0;i<times.length;i++){
+      const key = dayKey(new Date(times[i]));
+      (out[key] ||= []).push({
+        time: times[i],
+        precipitation: payload.precipitation?.[i],
+        precipitation_probability: payload.precipitation_probability?.[i],
+        rain: payload.rain?.[i], showers: payload.showers?.[i],
+        temperature_2m: payload.temperature_2m?.[i], relative_humidity_2m: payload.relative_humidity_2m?.[i],
+        cloud_cover: payload.cloud_cover?.[i], pressure_msl: payload.pressure_msl?.[i],
+        wind_speed_10m: payload.wind_speed_10m?.[i], wind_gusts_10m: payload.wind_gusts_10m?.[i],
+        uv_index: payload.uv_index?.[i],
+      });
+    }
+    return out;
+  }
+  function rainThreshold(h){
+    const mm=(h.rain||0)+(h.showers||0)+(h.precipitation||0);
+    const pop=h.precipitation_probability||0;
+    return (mm>=0.2)||(pop>=60);
+  }
+  function wetPeriods(hours){
+    const res=[]; let cur=null; let peak=null; let prevTime=null;
+    for(const h of hours){
+      const wet=rainThreshold(h);
+      if(wet && !cur){ cur={start:h.time}; peak={time:h.time, mm:(h.rain||0)+(h.showers||0)+(h.precipitation||0), pop:h.precipitation_probability||0}; }
+      if(wet){
+        const mm=(h.rain||0)+(h.showers||0)+(h.precipitation||0); const pop=h.precipitation_probability||0;
+        const better = (mm>(peak.mm||0)) || (pop>(peak.pop||0));
+        if(better) peak={time:h.time, mm, pop};
+      }
+      if(!wet && cur){ cur.end=prevTime||h.time; cur.peak=peak; res.push(cur); cur=null; }
+      prevTime=h.time;
+    }
+    if(cur){ cur.end=prevTime; cur.peak=peak; res.push(cur); }
+    return res;
+  }
+  function aqClass(euAQI){
+    if(euAQI==null) return {name:'—', cls:''};
+    if(euAQI>100) return {name:'Extremely poor', cls:'b-poor'};
+    if(euAQI>80) return {name:'Very poor', cls:'b-poor'};
+    if(euAQI>60) return {name:'Poor', cls:'b-poor'};
+    if(euAQI>40) return {name:'Moderate', cls:'b-mod'};
+    if(euAQI>20) return {name:'Fair', cls:'b-fair'};
+    return {name:'Good', cls:'b-good'};
+  }
+  function feelsLikeC(tC, windKmh, rh){
+    const v=windKmh||0, rhp=rh||50; const v_ms=v/3.6;
+    const t_wc = 13.12 + 0.6215*tC - 11.37*Math.pow(v_ms,0.16) + 0.3965*tC*Math.pow(v_ms,0.16);
+    const tF=tC*9/5+32; const hiF = -42.379 + 2.04901523*tF + 10.14333127*rhp - 0.22475541*tF*rhp - 6.83783e-3*tF*tF - 5.481717e-2*rhp*rhp + 1.22874e-3*tF*tF*rhp + 8.5282e-4*tF*rhp*rhp - 1.99e-6*tF*tF*rhp*rhp; const t_hi=(hiF-32)*5/9;
+    if(tC<=10 && v>=4.8) return Math.round(t_wc);
+    if(tC>=27) return Math.round(t_hi);
+    return Math.round(tC);
+  }
+  function wmoIcon(code){
+    const c=Number(code);
+    if([0].includes(c)) return ['☀️','Clear'];
+    if([1,2].includes(c)) return ['🌤️','Partly'];
+    if([3].includes(c)) return ['☁️','Cloudy'];
+    if([45,48].includes(c)) return ['🌫️','Fog'];
+    if([51,53,55].includes(c)) return ['🌦️','Drizzle'];
+    if([56,57].includes(c)) return ['🌧️','Freezing drizzle'];
+    if([61,63,65].includes(c)) return ['🌧️','Rain'];
+    if([66,67].includes(c)) return ['🌧️','Freezing rain'];
+    if([71,73,75,77].includes(c)) return ['🌨️','Snow'];
+    if([80,81,82].includes(c)) return ['🌦️','Showers'];
+    if([85,86].includes(c)) return ['🌨️','Snow showers'];
+    if([95].includes(c)) return ['⛈️','Thunder'];
+    if([96,99].includes(c)) return ['⛈️','Thunder + hail'];
+    return ['❓','—'];
+  }
+  function moonPhaseName(p){
+    if(p < 0.03 || p > 0.97) return 'New Moon';
+    if(p < 0.22) return 'Waxing crescent';
+    if(p < 0.28) return 'First quarter';
+    if(p < 0.47) return 'Waxing gibbous';
+    if(p < 0.53) return 'Full Moon';
+    if(p < 0.72) return 'Waning gibbous';
+    if(p < 0.78) return 'Last quarter';
+    return 'Waning crescent';
+  }
+
+  // ===== Data fetchers =====
+  const LSK='prerov-v1-cache';
+  async function retry(fn, n=1){ for(let i=0;i<=n;i++){ try{ return await fn(); }catch(e){ if(i===n) throw e; } } }
+  async function fetchForecast(){
+    const url = new URL('https://api.open-meteo.com/v1/forecast');
+    url.search = new URLSearchParams({
+      latitude: LAT, longitude: LON, timezone: 'auto', forecast_days: 7,
+      hourly: ['precipitation_probability','precipitation','rain','showers','temperature_2m','relative_humidity_2m','cloud_cover','pressure_msl','wind_speed_10m','wind_gusts_10m','uv_index'].join(','),
+      daily: ['sunrise','sunset','uv_index_max','precipitation_sum','precipitation_probability_max','temperature_2m_max','temperature_2m_min','weathercode'].join(','),
+      current: ['temperature_2m','wind_speed_10m','cloud_cover','pressure_msl','relative_humidity_2m','uv_index'].join(',')
+    }).toString();
+    const r = await fetch(url, {cache:'no-cache'}); if(!r.ok) throw new Error('forecast '+r.status); return r.json();
+  }
+  async function fetchAQ(){
+    const url = new URL('https://air-quality-api.open-meteo.com/v1/air-quality');
+    url.search = new URLSearchParams({ latitude: LAT, longitude: LON, timezone: 'auto',
+      hourly: 'pm2_5,ozone,european_aqi,alder_pollen,birch_pollen,grass_pollen,ragweed_pollen',
+      current: 'pm2_5,ozone,european_aqi,alder_pollen,birch_pollen,grass_pollen,ragweed_pollen' }).toString();
+    const r = await fetch(url, {cache:'no-cache'}); if(!r.ok) throw new Error('air '+r.status); return r.json();
+  }
+
+  async function fetchAlerts(){
+    try{
+      const r = await fetch(PROXY_BASE + '/meteoalarm-cz?region=olomoucky', {cache:'no-cache'});
+      if(!r.ok) throw new Error('alerts '+r.status);
+      const x = await r.json();
+      // client-side filter as a second line of defense
+      const valid = (x.items||[]).filter(it => {
+        const exp = it.expires ? Date.parse(it.expires) : null;
+        return !exp || exp > Date.now();
+      });
+      if(!valid.length){
+        setAlert('No active alerts for Přerov', 'green'); // also disables glow
+        $('alertsPanel').style.display='none';
+        return;
+      }
+
+      // populate
+      setAlert(valid[0]?.title || 'Weather alert', x.bestLevel || valid[0]?.level || 'yellow');
+      const panel=$('alertsPanel'); const list=$('alertsList'); const sum=$('alertsSummary');
+      panel.style.display='block'; list.innerHTML='';
+      sum.innerHTML = `Level: <span class="level ${x.bestLevel}">${(x.bestLevel||'').toUpperCase()}</span> • ${valid.length} item(s)`;
+      valid.slice(0,6).forEach(it=>{
+        const li=document.createElement('li');
+        const exp = it.expires ? new Date(it.expires).toLocaleString([], {hour:'2-digit',minute:'2-digit', day:'2-digit', month:'short'}) : '—';
+        li.innerHTML = `<span>${it.title||'Alert'}</span> <span class="level ${it.level||'yellow'}">${(it.level||'').toUpperCase()}</span> <span class="sub">until ${exp}</span>`;
+        list.appendChild(li);
+      });
+
+      // Tap banner to expand/collapse instead of taking over the screen
+      const bar = $('alertBar'); bar.onclick = () => bar.classList.toggle('expand');
+    }catch{
+      setAlert('Alerts: open Meteoalarm (tap)', 'gray');
+      const bar = $('alertBar'); bar.onclick = () => window.open('https://www.meteoalarm.org/en/region/CZ','_blank');
+    }
+  }
+
+  function setAlert(text, level){
+    // Banner style + text
+    const bar=$('alertBar');
+    bar.className='banner '+(level||'gray'); $('alertText').textContent=text;
+
+    // Edge glow color logic
+    // Only show glow if level is yellow/orange/red; green/gray => no glow
+    let glow='transparent', alpha='0%';
+    if(level==='yellow'){ glow='#f59e0b'; alpha='35%'; }
+    else if(level==='orange'){ glow='#fb923c'; alpha='45%'; }
+    else if(level==='red'){ glow='#ef4444'; alpha='55%'; }
+    document.documentElement.style.setProperty('--glow', glow);
+    document.documentElement.style.setProperty('--glowAlpha', alpha);
+  }
+
+  // ===== Charts & animation =====
+  let lastHours24 = null;
+  function animateChart(drawFn, duration=700){
+    if(LOW_MOTION){ drawFn(1); return; }
+    const t0=performance.now();
+    function frame(now){
+      const p=Math.min(1,(now-t0)/duration);
+      drawFn(p);
+      if(p<1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+  function drawRainChart(hours){
+    const c=$('rainChart'); const ctx=c.getContext('2d');
+    const DPR = Math.min(1.5, (window.devicePixelRatio||1));
+    c.width  = Math.floor(c.clientWidth * DPR);
+    c.height = Math.floor(c.clientHeight * DPR);
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    const W=c.clientWidth, H=c.clientHeight; ctx.clearRect(0,0,W,H);
+    if(!hours || !hours.length){ ctx.fillStyle='#9fb0ff'; ctx.fillText('no data',8,16); return; }
+    const pad=32; const barW=(W-pad*2)/Math.max(1,hours.length);
+    const mm=hours.map(h=> (h.rain||0)+(h.showers||0)+(h.precipitation||0)); const pop=hours.map(h=> h.precipitation_probability||0);
+    const maxMM=Math.max(0.8,...mm);
+    animateChart(p=>{
+      ctx.clearRect(0,0,W,H);
+      for(let i=0;i<mm.length;i++){
+        const x=pad+i*barW; const h=(mm[i]/maxMM)*(H-pad*2)*p; ctx.fillStyle='#77a8ff'; ctx.fillRect(x, H-pad-h, barW*0.6, h);
+      }
+      ctx.beginPath(); for(let i=0;i<pop.length;i++){
+        const x=pad+i*barW+barW*0.3; const y=H-pad-(pop[i]/100)*(H-pad*2)*p; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      } ctx.strokeStyle='#f5d061'; ctx.lineWidth=2; ctx.stroke();
+      ctx.fillStyle='#9fb0ff'; ctx.font='13px system-ui'; for(let i=0;i<hours.length;i+=3){ const x=pad+i*barW+barW*0.3; const t=String(new Date(hours[i].time).getHours()).padStart(2,'0'); ctx.fillText(t, x-7, H-8); }
     });
   }
-  return out;
-}
-function rainThreshold(h){
-  const mm=(h.rain||0)+(h.showers||0)+(h.precipitation||0);
-  const pop=h.precipitation_probability||0;
-  return (mm>=0.2)||(pop>=60);
-}
-function wetPeriods(hours){
-  const res=[]; let cur=null; let peak=null; let prevTime=null;
-  for(const h of hours){
-    const wet=rainThreshold(h);
-    if(wet && !cur){ cur={start:h.time}; peak={time:h.time, mm:(h.rain||0)+(h.showers||0)+(h.precipitation||0), pop:h.precipitation_probability||0}; }
-    if(wet){
-      const mm=(h.rain||0)+(h.showers||0)+(h.precipitation||0); const pop=h.precipitation_probability||0;
-      const better = (mm>(peak.mm||0)) || (pop>(peak.pop||0));
-      if(better) peak={time:h.time, mm, pop};
-    }
-    if(!wet && cur){ cur.end=prevTime||h.time; cur.peak=peak; res.push(cur); cur=null; }
-    prevTime=h.time;
-  }
-  if(cur){ cur.end=prevTime; cur.peak=peak; res.push(cur); }
-  return res;
-}
-function aqClass(euAQI){
-  if(euAQI==null) return {name:'—', cls:''};
-  if(euAQI>100) return {name:'Extremely poor', cls:'b-poor'};
-  if(euAQI>80) return {name:'Very poor', cls:'b-poor'};
-  if(euAQI>60) return {name:'Poor', cls:'b-poor'};
-  if(euAQI>40) return {name:'Moderate', cls:'b-mod'};
-  if(euAQI>20) return {name:'Fair', cls:'b-fair'};
-  return {name:'Good', cls:'b-good'};
-}
-function feelsLikeC(tC, windKmh, rh){
-  const v=windKmh||0, rhp=rh||50; const v_ms=v/3.6;
-  const t_wc = 13.12 + 0.6215*tC - 11.37*Math.pow(v_ms,0.16) + 0.3965*tC*Math.pow(v_ms,0.16);
-  const tF=tC*9/5+32; const hiF = -42.379 + 2.04901523*tF + 10.14333127*rhp - 0.22475541*tF*rhp - 6.83783e-3*tF*tF - 5.481717e-2*rhp*rhp + 1.22874e-3*tF*tF*rhp + 8.5282e-4*tF*rhp*rhp - 1.99e-6*tF*tF*rhp*rhp; const t_hi=(hiF-32)*5/9;
-  if(tC<=10 && v>=4.8) return Math.round(t_wc);
-  if(tC>=27) return Math.round(t_hi);
-  return Math.round(tC);
-}
-function wmoIcon(code){
-  const c=Number(code);
-  if([0].includes(c)) return ['☀️','Clear'];
-  if([1,2].includes(c)) return ['🌤️','Partly'];
-  if([3].includes(c)) return ['☁️','Cloudy'];
-  if([45,48].includes(c)) return ['🌫️','Fog'];
-  if([51,53,55].includes(c)) return ['🌦️','Drizzle'];
-  if([56,57].includes(c)) return ['🌧️','Freezing drizzle'];
-  if([61,63,65].includes(c)) return ['🌧️','Rain'];
-  if([66,67].includes(c)) return ['🌧️','Freezing rain'];
-  if([71,73,75,77].includes(c)) return ['🌨️','Snow'];
-  if([80,81,82].includes(c)) return ['🌦️','Showers'];
-  if([85,86].includes(c)) return ['🌨️','Snow showers'];
-  if([95].includes(c)) return ['⛈️','Thunder'];
-  if([96,99].includes(c)) return ['⛈️','Thunder + hail'];
-  return ['❓','—'];
-}
-function moonPhaseName(phase){
-  const p = phase; // 0..1
-  if(p < 0.03 || p > 0.97) return 'New Moon';
-  if(p < 0.22) return 'Waxing crescent';
-  if(p < 0.28) return 'First quarter';
-  if(p < 0.47) return 'Waxing gibbous';
-  if(p < 0.53) return 'Full Moon';
-  if(p < 0.72) return 'Waning gibbous';
-  if(p < 0.78) return 'Last quarter';
-  return 'Waning crescent';
-}
-
-// ===== Data fetchers =====
-const LSK='prerov-v1-cache';
-async function retry(fn, n=1){ for(let i=0;i<=n;i++){ try{ return await fn(); }catch(e){ if(i===n) throw e; } } }
-async function fetchForecast(){
-  const url = new URL('https://api.open-meteo.com/v1/forecast');
-  url.search = new URLSearchParams({
-    latitude: LAT, longitude: LON, timezone: 'auto', forecast_days: 7,
-    hourly: ['precipitation_probability','precipitation','rain','showers','temperature_2m','relative_humidity_2m','cloud_cover','pressure_msl','wind_speed_10m','wind_gusts_10m','uv_index'].join(','),
-    daily: ['sunrise','sunset','uv_index_max','precipitation_sum','precipitation_probability_max','temperature_2m_max','temperature_2m_min','weathercode'].join(','),
-    current: ['temperature_2m','wind_speed_10m','cloud_cover','pressure_msl','relative_humidity_2m','uv_index'].join(',')
-  }).toString();
-  const r = await fetch(url, {cache:'no-cache'}); if(!r.ok) throw new Error('forecast '+r.status); return r.json();
-}
-async function fetchAQ(){
-  const url = new URL('https://air-quality-api.open-meteo.com/v1/air-quality');
-  url.search = new URLSearchParams({ latitude: LAT, longitude: LON, timezone: 'auto',
-    hourly: 'pm2_5,ozone,european_aqi,alder_pollen,birch_pollen,grass_pollen,ragweed_pollen',
-    current: 'pm2_5,ozone,european_aqi,alder_pollen,birch_pollen,grass_pollen,ragweed_pollen' }).toString();
-  const r = await fetch(url, {cache:'no-cache'}); if(!r.ok) throw new Error('air '+r.status); return r.json();
-}
-async function fetchAlerts(){
-  try{
-    const r = await fetch(PROXY_BASE + '/meteoalarm-cz?region=olomoucky', {cache:'no-cache'});
-    if(!r.ok) throw new Error('alerts '+r.status);
-    const x = await r.json();
-    if(!x.ok) throw new Error(x.error||'alerts bad');
-
-    if((x.count||0)===0){ setAlert('No active alerts for Přerov', 'green'); }
-    else{ setAlert(x.items?.[0]?.title||'Weather alert', x.bestLevel||x.items?.[0]?.level||'yellow'); }
-
-    const panel=$('alertsPanel'); const list=$('alertsList'); const sum=$('alertsSummary');
-    list.innerHTML=''; panel.style.display='block';
-    if((x.count||0)===0){ sum.textContent='No active alerts for your region.'; return; }
-    sum.innerHTML = `Level: <span class="level ${x.bestLevel}">${x.bestLevel.toUpperCase()}</span> • ${x.count} item(s)`;
-    (x.items||[]).slice(0,6).forEach(it=>{
-      const li=document.createElement('li');
-      li.style.margin='4px 0';
-      li.innerHTML = `<span>${it.title||'Alert'}</span> <span class="level ${it.level||'yellow'}">${(it.level||'').toUpperCase()}</span>`;
-      list.appendChild(li);
+  function drawTempWindChart(hours){
+    const c=$('tempWindChart'); const ctx=c.getContext('2d');
+    const DPR = Math.min(1.5, (window.devicePixelRatio||1));
+    c.width  = Math.floor(c.clientWidth * DPR);
+    c.height = Math.floor(c.clientHeight * DPR);
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    const W=c.clientWidth, H=c.clientHeight; ctx.clearRect(0,0,W,H);
+    if(!hours || !hours.length){ ctx.fillStyle='#9fb0ff'; ctx.fillText('no data',8,16); return; }
+    const pad=32; const n=Math.max(1,hours.length); const step=(W-pad*2)/n;
+    const temps=hours.map(h=> h.temperature_2m||0); const winds=hours.map(h=> h.wind_speed_10m||0);
+    const tMin=Math.min(...temps)-1, tMax=Math.max(...temps)+1; const wMax=Math.max(20,...winds);
+    const yT = v => H-pad-((v-tMin)/(tMax-tMin))*(H-pad*2);
+    const yW = v => H-pad-(v/wMax)*(H-pad*2);
+    animateChart(p=>{
+      ctx.clearRect(0,0,W,H);
+      ctx.fillStyle='#9fb0ff55';
+      for(let i=0;i<winds.length;i++){
+        const x=pad+i*step; const h=yW(0)-yW(winds[i]*p); ctx.fillRect(x, yW(winds[i]*p), step*0.6, h);
+      }
+      ctx.beginPath();
+      for(let i=0;i<temps.length;i++){
+        const x=pad+i*step+step*0.3; const y=yT(temps[i]); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.strokeStyle='#ffd166'; ctx.lineWidth=2; ctx.stroke();
+      ctx.fillStyle='#9fb0ff'; ctx.font='13px system-ui'; for(let i=0;i<hours.length;i+=3){ const x=pad+i*step+step*0.3; const t=String(new Date(hours[i].time).getHours()).padStart(2,'0'); ctx.fillText(t, x-7, H-8); }
     });
-  }catch(e){
-    setAlert('Alerts: open Meteoalarm (tap)', 'gray');
-    const bar = document.getElementById('alertBar');
-    bar.onclick = () => window.open('https://www.meteoalarm.org/en/region/CZ','_blank');
   }
-}
-function setAlert(text, level){ const bar=$('alertBar'); bar.className='banner '+(level||'gray'); $('alertText').textContent=text; }
+  function redrawCharts(){ if(lastHours24){ drawRainChart(lastHours24); drawTempWindChart(lastHours24); } }
+  window.addEventListener('resize', ()=> { clearTimeout(window.__rsz); window.__rsz=setTimeout(redrawCharts, 120); });
 
-// ===== Charts & animation =====
-let lastHours24 = null; // store for resize redraw
-function animateChart(drawFn, duration=700){
-  const t0=performance.now();
-  function frame(now){
-    const p=Math.min(1,(now-t0)/duration);
-    drawFn(p);
-    if(p<1) requestAnimationFrame(frame);
+  // ===== Render & interactions =====
+  function renderFromCache(){
+    try{ const s=localStorage.getItem(LSK); if(!s) return; const {fc, aq, ts}=JSON.parse(s); if(Date.now()-ts>90*60*1000) return; paint(fc, aq, true); }catch{}
   }
-  requestAnimationFrame(frame);
-}
-function drawRainChart(hours){
-  const c=$('rainChart'); const ctx=c.getContext('2d'); const W=c.width=c.clientWidth, H=c.height=c.clientHeight; ctx.clearRect(0,0,W,H);
-  if(!hours || !hours.length){ ctx.fillStyle='#9fb0ff'; ctx.fillText('no data',8,16); return; }
-  const pad=32; const barW=(W-pad*2)/Math.max(1,hours.length);
-  const mm=hours.map(h=> (h.rain||0)+(h.showers||0)+(h.precipitation||0)); const pop=hours.map(h=> h.precipitation_probability||0);
-  const maxMM=Math.max(0.8,...mm);
-  animateChart(p=>{
-    ctx.clearRect(0,0,W,H);
-    for(let i=0;i<mm.length;i++){
-      const x=pad+i*barW; const h=(mm[i]/maxMM)*(H-pad*2)*p; ctx.fillStyle='#77a8ff'; ctx.fillRect(x, H-pad-h, barW*0.6, h);
+
+  function paint(fc, aq, cached=false){
+    $('asof').textContent = (cached?'cached ':'updated ')+ new Date().toLocaleTimeString(LOCALE, {hour:'2-digit',minute:'2-digit'}) + ` • v${APP_VER}`;
+
+    // Build windows starting from NOW
+    const times = fc.hourly.time;
+    const H = {
+      precip: fc.hourly.precipitation, rain: fc.hourly.rain, showers: fc.hourly.showers,
+      pop: fc.hourly.precipitation_probability, t: fc.hourly.temperature_2m,
+      rh: fc.hourly.relative_humidity_2m, cloud: fc.hourly.cloud_cover,
+      pmsl: fc.hourly.pressure_msl, ws: fc.hourly.wind_speed_10m, wg: fc.hourly.wind_gusts_10m,
+      uv: fc.hourly.uv_index
+    };
+    const idxNow = findCurrentHourIndex(times);
+    const endOfTodayIdx = (() => {
+      const d = new Date(times[idxNow]); d.setHours(23,59,59,999);
+      for (let i=times.length-1;i>=0;i--){
+        const ti = new Date(times[i]);
+        if (ti.getFullYear()===d.getFullYear() && ti.getMonth()===d.getMonth() && ti.getDate()===d.getDate()) return i;
+      }
+      return Math.min(idxNow+23, times.length-1);
+    })();
+    function packHours(start, end){
+      const out=[]; for(let i=start;i<=end;i++){
+        out.push({
+          time: times[i],
+          precipitation: H.precip?.[i], precipitation_probability: H.pop?.[i],
+          rain: H.rain?.[i], showers: H.showers?.[i],
+          temperature_2m: H.t?.[i], relative_humidity_2m: H.rh?.[i],
+          cloud_cover: H.cloud?.[i], pressure_msl: H.pmsl?.[i],
+          wind_speed_10m: H.ws?.[i], wind_gusts_10m: H.wg?.[i],
+          uv_index: H.uv?.[i],
+        });
+      } return out;
     }
-    ctx.beginPath(); for(let i=0;i<pop.length;i++){
-      const x=pad+i*barW+barW*0.3; const y=H-pad-(pop[i]/100)*(H-pad*2)*p; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-    } ctx.strokeStyle='#f5d061'; ctx.lineWidth=2; ctx.stroke();
-    ctx.fillStyle='#9fb0ff'; ctx.font='13px system-ui'; for(let i=0;i<hours.length;i+=3){ const x=pad+i*barW+barW*0.3; const t=String(new Date(hours[i].time).getHours()).padStart(2,'0'); ctx.fillText(t, x-7, H-8); }
-  });
-}
-function drawTempWindChart(hours){
-  const c=$('tempWindChart'); const ctx=c.getContext('2d'); const W=c.width=c.clientWidth, H=c.height=c.clientHeight; ctx.clearRect(0,0,W,H);
-  if(!hours || !hours.length){ ctx.fillStyle='#9fb0ff'; ctx.fillText('no data',8,16); return; }
-  const pad=32; const n=Math.max(1,hours.length); const step=(W-pad*2)/n;
-  const temps=hours.map(h=> h.temperature_2m||0); const winds=hours.map(h=> h.wind_speed_10m||0);
-  const tMin=Math.min(...temps)-1, tMax=Math.max(...temps)+1; const wMax=Math.max(20,...winds);
-  const yT = v => H-pad-((v-tMin)/(tMax-tMin))*(H-pad*2);
-  const yW = v => H-pad-(v/wMax)*(H-pad*2);
-  animateChart(p=>{
-    ctx.clearRect(0,0,W,H);
-    // wind bars
-    ctx.fillStyle='#9fb0ff55';
-    for(let i=0;i<winds.length;i++){
-      const x=pad+i*step; const h=yW(0)-yW(winds[i]*p); ctx.fillRect(x, yW(winds[i]*p), step*0.6, h);
-    }
-    // temp line
-    ctx.beginPath();
-    for(let i=0;i<temps.length;i++){
-      const x=pad+i*step+step*0.3; const y=yT(temps[i]);
-      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-    }
-    ctx.strokeStyle='#ffd166'; ctx.lineWidth=2; ctx.stroke();
-    ctx.fillStyle='#9fb0ff'; ctx.font='13px system-ui'; for(let i=0;i<hours.length;i+=3){ const x=pad+i*step+step*0.3; const t=String(new Date(hours[i].time).getHours()).padStart(2,'0'); ctx.fillText(t, x-7, H-8); }
-  });
-}
-function redrawCharts(){ if(lastHours24){ drawRainChart(lastHours24); drawTempWindChart(lastHours24); } }
-window.addEventListener('resize', ()=> { clearTimeout(window.__rsz); window.__rsz=setTimeout(redrawCharts, 120); });
+    const todayHoursFromNow = packHours(idxNow, endOfTodayIdx);
+    const tomorrowStartIdx = endOfTodayIdx + 1;
+    const tomorrowEndIdx = Math.min(tomorrowStartIdx + 23, times.length-1);
+    const tomorrowHours = packHours(tomorrowStartIdx, tomorrowEndIdx);
 
-// ===== UI render =====
-function renderFromCache(){
-  try{ const s=localStorage.getItem(LSK); if(!s) return; const {fc, aq, ts}=JSON.parse(s); if(Date.now()-ts>90*60*1000) return; paint(fc, aq, true); }catch{}
-}
+    // YES/NO today
+    const perT = wetPeriods(todayHoursFromNow);
+    const yesT = perT.length>0; setAnswer($("rainToday"), yesT?'YES':'NO', yesT?'bad':'ok');
+    $("reasonToday").innerHTML = yesT
+      ? `Starts ~ <strong>${fmtTime(perT[0].start)}</strong> • Peak ~ <strong>${fmtTime(perT[0].peak.time)}</strong> — ${Math.round(perT[0].peak.pop||0)}% • ${(perT[0].peak.mm||0).toFixed(1)} mm/h • Ends ~ <strong>${fmtTime(perT[0].end)}</strong>`
+      : 'No significant rain expected under our thresholds.';
+    $("highlightsToday").textContent = perT.slice(0,3).map(x=> `${fmtTime(x.start)}–${fmtTime(x.end)}`).join(' • ') || 'All hours look dry.';
 
-function paint(fc, aq, cached=false){
-  $('asof').textContent = (cached?'cached ':'updated ')+ new Date().toLocaleTimeString(LOCALE, {hour:'2-digit',minute:'2-digit'}) + ` • v${APP_VER}`;
+    // YES/NO tomorrow
+    const perTm = wetPeriods(tomorrowHours);
+    const yesTm = perTm.length>0; setAnswer($("rainTomorrow"), yesTm?'YES':'NO', yesTm?'warn':'ok');
+    $("reasonTomorrow").innerHTML = yesTm
+      ? `Starts ~ <strong>${fmtTime(perTm[0].start)}</strong> • Peak ~ <strong>${fmtTime(perTm[0].peak.time)}</strong> — ${Math.round(perTm[0].peak.pop||0)}% • ${(perTm[0].peak.mm||0).toFixed(1)} mm/h • Ends ~ <strong>${fmtTime(perTm[0].end)}</strong>`
+      : 'No significant rain expected.';
+    $("highlightsTomorrow").textContent = perTm.slice(0,3).map(x=> `${fmtTime(x.start)}–${fmtTime(x.end)}`).join(' • ') || '—';
 
-  // Rain periods
-  const times=fc.hourly.time, groups=groupHoursByDay(times, fc.hourly), keys=Object.keys(groups);
-  const today=groups[keys[0]]||[], tomorrow=groups[keys[1]]||[];
-  const perT = wetPeriods(today);
-  const perTm = wetPeriods(tomorrow);
+    // Sun & Moon + UV/feels-like/pressure trend
+    try{
+      const now = new Date();
+      const sun = SunCalc.getTimes(now, LAT, LON);
+      $("sunLine").textContent = `Sunrise ${fmtTime(sun.sunrise)} • Sunset ${fmtTime(sun.sunset)}`;
+      const moonT = SunCalc.getMoonTimes(now, LAT, LON); const mi = SunCalc.getMoonIllumination(now);
+      const phase = moonPhaseName(mi.phase);
+      let moonTxt = `${phase}: ${Math.round(mi.fraction*100)}% lit`;
+      if(moonT.rise) moonTxt += ` • Rise ${fmtTime(moonT.rise)}`;
+      if(moonT.set) moonTxt += ` • Set ${fmtTime(moonT.set)}`;
+      $("moonLine").textContent = moonTxt;
+    }catch{}
+    const nowIdx = idxNow;
+    const nowTemp = fc.hourly.temperature_2m?.[nowIdx];
+    const nowWind = fc.hourly.wind_speed_10m?.[nowIdx];
+    const nowRH   = fc.hourly.relative_humidity_2m?.[nowIdx];
+    const cloud = fc.hourly.cloud_cover?.[nowIdx];
+    const p=fc.hourly.pressure_msl?.[nowIdx];
+    $("nowLine").textContent = `Now: ${nowTemp!=null? Math.round(nowTemp)+'°C':'—'} (feels ${feelsLikeC(nowTemp||0, nowWind||0, nowRH||50)}°C), wind ${nowWind!=null? Math.round(nowWind)+' km/h':'—'}, clouds ${cloud!=null? Math.round(cloud)+'%':'—'}, pressure ${p!=null? Math.round(p)+' hPa':'—'}`;
+    const uvNow = fc.current?.uv_index; const uvMax = fc.daily?.uv_index_max?.[0];
+    const flWarn = (nowTemp!=null?Math.abs(feelsLikeC(nowTemp||0, nowWind||0, nowRH||50)-nowTemp):0)>=4 ? ` <span class="chip">Feels-like differs by ≥4°C</span>` : '';
+    $("uvChips").innerHTML = `<span class="chip">UV now ${uvNow!=null?uvNow.toFixed(1):'—'}</span><span class="chip">UV max ${uvMax!=null?uvMax.toFixed(1):'—'}</span>${flWarn}`;
+    const idx3 = Math.max(0, nowIdx-3); const p3 = fc.hourly.pressure_msl?.[idx3];
+    if(p!=null && p3!=null){ const diff=Math.round(p - p3); const arrow = diff>0 ? '▲' : (diff<0?'▼':'→'); $("uvChips").innerHTML += ` <span class="chip">Pressure ${arrow} ${diff} hPa/3h</span>`; }
 
-  const yesT = perT.length>0; setAnswer($("rainToday"), yesT?'YES':'NO', yesT?'bad':'ok');
-  if(yesT){
-    const p=perT[0];
-    $("reasonToday").innerHTML = `Starts ~ <strong>${fmtTime(p.start)}</strong> • Peak ~ <strong>${fmtTime(p.peak.time)}</strong> — ${Math.round(p.peak.pop||0)}% • ${(p.peak.mm||0).toFixed(1)} mm/h • Ends ~ <strong>${fmtTime(p.end)}</strong>`;
-  } else $("reasonToday").textContent='No significant rain expected under our thresholds.';
+    // Tip
+    $("dailyTip").textContent = computeTip(fc, aq);
 
-  const listT = perT.slice(0,3).map(x=> `${fmtTime(x.start)}–${fmtTime(x.end)}`).join(' • ');
-  $("highlightsToday").textContent = listT || 'All hours look dry.';
+    // Charts → next 24h from now
+    const next24End = Math.min(nowIdx + 23, times.length-1);
+    lastHours24 = (function packHours(start, end){
+      const out=[]; for(let i=start;i<=end;i++){ out.push({
+        time: times[i],
+        precipitation: H.precip?.[i], precipitation_probability: H.pop?.[i],
+        rain: H.rain?.[i], showers: H.showers?.[i],
+        temperature_2m: H.t?.[i], wind_speed_10m: H.ws?.[i]
+      }); } return out;
+    })(nowIdx, next24End);
+    drawRainChart(lastHours24);
+    drawTempWindChart(lastHours24);
 
-  const yesTm = perTm.length>0; setAnswer($("rainTomorrow"), yesTm?'YES':'NO', yesTm?'warn':'ok');
-  if(yesTm){ const p=perTm[0];
-    $("reasonTomorrow").innerHTML = `Starts ~ <strong>${fmtTime(p.start)}</strong> • Peak ~ <strong>${fmtTime(p.peak.time)}</strong> — ${Math.round(p.peak.pop||0)}% • ${(p.peak.mm||0).toFixed(1)} mm/h • Ends ~ <strong>${fmtTime(p.end)}</strong>`;
-  } else $("reasonTomorrow").textContent='No significant rain expected.';
-  $("highlightsTomorrow").textContent = perTm.slice(0,3).map(x=> `${fmtTime(x.start)}–${fmtTime(x.end)}`).join(' • ') || '—';
-
-  // Sun & Moon + UV/feels-like/pressure trend
-  const now = new Date();
-  try{
-    const sun = SunCalc.getTimes(now, LAT, LON);
-    $("sunLine").textContent = `Sunrise ${fmtTime(sun.sunrise)} • Sunset ${fmtTime(sun.sunset)}`;
-    const moonT = SunCalc.getMoonTimes(now, LAT, LON); const mi = SunCalc.getMoonIllumination(now);
-    const phase = moonPhaseName(mi.phase);
-    let moonTxt = `${phase}: ${Math.round(mi.fraction*100)}% lit`;
-    if(moonT.rise) moonTxt += ` • Rise ${fmtTime(moonT.rise)}`;
-    if(moonT.set) moonTxt += ` • Set ${fmtTime(moonT.set)}`;
-    $("moonLine").textContent = moonTxt + ' (Daytime moon is normal near crescent phases)';
-  }catch{}
-  const idx = findCurrentHourIndex(times);
-  const nowTemp = fc.hourly.temperature_2m?.[idx];
-  const nowWind = fc.hourly.wind_speed_10m?.[idx];
-  const nowRH   = fc.hourly.relative_humidity_2m?.[idx];
-  const cloud = fc.hourly.cloud_cover?.[idx];
-  const p=fc.hourly.pressure_msl?.[idx];
-  $("nowLine").textContent = `Now: ${nowTemp!=null? Math.round(nowTemp)+'°C':'—'} (feels ${feelsLikeC(nowTemp||0, nowWind||0, nowRH||50)}°C), wind ${nowWind!=null? Math.round(nowWind)+' km/h':'—'}, clouds ${cloud!=null? Math.round(cloud)+'%':'—'}, pressure ${p!=null? Math.round(p)+' hPa':'—'}`;
-  const uvNow = fc.current?.uv_index; const uvMax = fc.daily?.uv_index_max?.[0];
-  const flWarn = (nowTemp!=null?Math.abs(feelsLikeC(nowTemp||0, nowWind||0, nowRH||50)-nowTemp):0)>=4 ? ` <span class="chip">Feels-like differs by ≥4°C</span>` : '';
-  $("uvChips").innerHTML = `<span class="chip">UV now ${uvNow!=null?uvNow.toFixed(1):'—'}</span><span class="chip">UV max ${uvMax!=null?uvMax.toFixed(1):'—'}</span>${flWarn}`;
-  const idx3 = Math.max(0, idx-3); const p3 = fc.hourly.pressure_msl?.[idx3];
-  if(p!=null && p3!=null){ const diff=Math.round(p - p3); const arrow = diff>0 ? '▲' : (diff<0?'▼':'→'); $("uvChips").innerHTML += ` <span class=\"chip\">Pressure ${arrow} ${diff} hPa/3h</span>`; }
-
-  // Tip
-  $("dailyTip").textContent = computeTip(fc, aq);
-
-  // Charts
-  lastHours24 = today.slice(0,24);
-  drawRainChart(lastHours24);
-  drawTempWindChart(lastHours24);
-
-  // AQI + pollen
-  const ai=aq.hourly||{}; const aTimes=ai.time||[]; const aIdx=findCurrentHourIndex(aTimes);
-  const pm = ai.pm2_5?.[aIdx]; const o3= ai.ozone?.[aIdx]; const euaqi = ai.european_aqi?.[aIdx];
-  const cl = aqClass(euaqi); const badge = $("aqBadge"); badge.textContent = cl.name + (euaqi!=null? ` (${Math.round(euaqi)})`:''); badge.className = 'badge '+cl.cls;
-  $("aqLine").textContent = `PM₂.₅ ${pm!=null? Math.round(pm)+' µg/m³':'—'} • O₃ ${o3!=null? Math.round(o3)+' µg/m³':'—'}`;
-  const alder = ai.alder_pollen?.[aIdx], birch=ai.birch_pollen?.[aIdx], grass=ai.grass_pollen?.[aIdx], rag=ai.ragweed_pollen?.[aIdx];
-  const polTxt = [
-    alder!=null?`Alder ${Math.round(alder)}`:null,
-    birch!=null?`Birch ${Math.round(birch)}`:null,
-    grass!=null?`Grass ${Math.round(grass)}`:null,
-    rag!=null?`Ragweed ${Math.round(rag)}`:null,
-  ].filter(Boolean).join(' • ');
-  $("pollenLine").textContent = polTxt || 'Pollen: —';
-
-  // 7‑day strip
-  const d = fc.daily||{}; const n = Math.min(7, (d.time||[]).length); let html='';
-  for(let i=0;i<n;i++){
-    const [ico, label] = wmoIcon(d.weathercode?.[i]);
-    const day = fmtDay(d.time?.[i]);
-    const hi = d.temperature_2m_max?.[i]; const lo=d.temperature_2m_min?.[i];
-    const pop = d.precipitation_probability_max?.[i];
-    html += `<div class="day"><div class="sub">${day}</div><div class="w">${ico}</div><div>${label}</div><div class="t"><strong>${Math.round(hi)}°</strong> / ${Math.round(lo)}°</div><div class="sub">PoP ${pop!=null?pop+'%':'—'}</div></div>`;
-  }
-  $("daysStrip").innerHTML = html;
-}
-
-// ===== Tips =====
-function computeTip(fc, aq){
-  try{
-    const times=fc.hourly.time; const idx=findCurrentHourIndex(times);
-    const p=fc.hourly.pressure_msl?.[idx]; const p3=fc.hourly.pressure_msl?.[Math.max(0, idx-3)];
-    const dp = (p!=null && p3!=null) ? (p - p3) : null; // hPa in last 3h
-    const uvMax = fc.daily?.uv_index_max?.[0];
-    const gust = fc.hourly.wind_gusts_10m?.[idx];
-    const rainNow = (fc.hourly.rain?.[idx]||0)+(fc.hourly.showers?.[idx]||0)+(fc.hourly.precipitation?.[idx]||0);
-
+    // AQI + pollen
     const ai=aq.hourly||{}; const aTimes=ai.time||[]; const aIdx=findCurrentHourIndex(aTimes);
-    const euaqi = ai.european_aqi?.[aIdx];
+    const pm = ai.pm2_5?.[aIdx]; const o3= ai.ozone?.[aIdx]; const euaqi = ai.european_aqi?.[aIdx];
+    const cl = aqClass(euaqi); const badge = $("aqBadge"); badge.textContent = cl.name + (euaqi!=null? ` (${Math.round(euaqi)})`:''); badge.className = 'badge '+cl.cls;
+    $("aqLine").textContent = `PM₂.₅ ${pm!=null? Math.round(pm)+' µg/m³':'—'} • O₃ ${o3!=null? Math.round(o3)+' µg/m³':'—'}`;
+    const alder = ai.alder_pollen?.[aIdx], birch=ai.birch_pollen?.[aIdx], grass=ai.grass_pollen?.[aIdx], rag=ai.ragweed_pollen?.[aIdx];
+    const polTxt = [
+      alder!=null?`Alder ${Math.round(alder)}`:null,
+      birch!=null?`Birch ${Math.round(birch)}`:null,
+      grass!=null?`Grass ${Math.round(grass)}`:null,
+      rag!=null?`Ragweed ${Math.round(rag)}`:null,
+    ].filter(Boolean).join(' • ');
+    $("pollenLine").textContent = polTxt || 'Pollen: —';
 
-    if(euaqi!=null && euaqi>60) return `Tip: Air quality is ${Math.round(euaqi)} (Poor). Sensitive people should limit outdoor exertion.`;
-    if(gust!=null && gust>=60) return `Tip: Strong gusts (~${Math.round(gust)} km/h). Secure loose items and be careful on bikes.`;
-    if(dp!=null && dp<=-3) return `Tip: Notable pressure drop (~${Math.round(-dp)} hPa/3h). Some people feel headaches—hydrate and pace yourself.`;
-    if(uvMax!=null && uvMax>=6) return `Tip: High UV today (max ~${uvMax.toFixed(1)}). Sun protection around midday helps.`;
-    if(rainNow>=0.2) return `Tip: Ongoing rain—keep an umbrella; roads may be slick.`;
-    return `Tip: All quiet—no strong signals from AQI, wind, UV, or pressure.`;
-  }catch{ return `Tip: —`; }
-}
+    // 7-day
+    const d = fc.daily||{}; const n = Math.min(7, (d.time||[]).length); let html='';
+    for(let i=0;i<n;i++){
+      const [ico, label] = wmoIcon(d.weathercode?.[i]);
+      const day = fmtDay(d.time?.[i]);
+      const hi = d.temperature_2m_max?.[i]; const lo=d.temperature_2m_min?.[i];
+      const pop = d.precipitation_probability_max?.[i];
+      html += `<div class="day"><div class="sub">${day}</div><div class="w">${ico}</div><div>${label}</div><div class="t"><strong>${Math.round(hi)}°</strong> / ${Math.round(lo)}°</div><div class="sub">PoP ${pop!=null?pop+'%':'—'}</div></div>`;
+    }
+    $("daysStrip").innerHTML = html;
+  }
 
-// ===== Interactions =====
-function revealOnScroll(){
-  const obs = new IntersectionObserver(entries=>{
-    for(const e of entries){ if(e.isIntersecting){ e.target.classList.add('reveal'); obs.unobserve(e.target); } }
-  }, {threshold: .15});
-  document.querySelectorAll('.card').forEach(el=> obs.observe(el));
-}
-function setupShare(){
-  $('shareBtn').onclick = async () => {
-    const yes = $('rainToday').textContent.trim();
-    const txt = `Přerov weather: Rain today: ${yes}. ` + $('reasonToday').innerText.replace(/\s+/g,' ').trim();
-    const data = { title: 'Přerov Weather', text: txt, url: location.href };
-    if (navigator.share) { try{ await navigator.share(data); }catch{} }
-    else { try{ await navigator.clipboard.writeText(`${txt} — ${location.href}`); $('shareBtn').textContent='Copied!'; setTimeout(()=>$('shareBtn').textContent='Share',1200);}catch{} }
-  };
-}
-function setupRadar(){
-  const link = $('radarOpenLink'); link.href = RADAR_URL;
-  const btn=$('radarToggle'); const slot=$('radarSlot'); let shown=false;
-  btn.onclick = () => {
-    if(!shown){
-      const ifr=document.createElement('iframe');
-      ifr.className='radar';
-      ifr.setAttribute('sandbox','allow-scripts allow-same-origin');
-      ifr.setAttribute('referrerpolicy','no-referrer');
-      ifr.loading='lazy'; ifr.title='CZ radar'; ifr.src=RADAR_URL;
-      slot.appendChild(ifr); btn.textContent='Hide live radar'; shown=true;
-    } else { slot.innerHTML=''; btn.textContent='Show live radar'; shown=false; }
-  };
-}
+  function computeTip(fc, aq){
+    try{
+      const times=fc.hourly.time; const idx=findCurrentHourIndex(times);
+      const p=fc.hourly.pressure_msl?.[idx]; const p3=fc.hourly.pressure_msl?.[Math.max(0, idx-3)];
+      const dp = (p!=null && p3!=null) ? (p - p3) : null;
+      const uvMax = fc.daily?.uv_index_max?.[0];
+      const gust = fc.hourly.wind_gusts_10m?.[idx];
+      const rainNow = (fc.hourly.rain?.[idx]||0)+(fc.hourly.showers?.[idx]||0)+(fc.hourly.precipitation?.[idx]||0);
+      const ai=aq.hourly||{}; const aTimes=ai.time||[]; const aIdx=findCurrentHourIndex(aTimes);
+      const euaqi = ai.european_aqi?.[aIdx];
 
-async function init(){
-  revealOnScroll();
-  setupShare();
-  setupRadar();
-  $('asof').textContent = 'loading…';
-  try{
-    const [fc, aq] = await Promise.all([retry(fetchForecast,1), retry(fetchAQ,1)]);
-    try{ localStorage.setItem(LSK, JSON.stringify({fc, aq, ts: Date.now()})); }catch{}
-    paint(fc, aq, false);
-  }catch(err){ $('asof').textContent='failed'; }
-  fetchAlerts();
-}
+      if(euaqi!=null && euaqi>60) return `Tip: Air quality is ${Math.round(euaqi)} (Poor). Sensitive people should limit outdoor exertion.`;
+      if(gust!=null && gust>=60) return `Tip: Strong gusts (~${Math.round(gust)} km/h). Secure loose items and be careful on bikes.`;
+      if(dp!=null && dp<=-3) return `Tip: Notable pressure drop (~${Math.round(-dp)} hPa/3h). Some people feel headaches—hydrate and pace yourself.`;
+      if(uvMax!=null && uvMax>=6) return `Tip: High UV today (max ~${uvMax.toFixed(1)}). Sun protection around midday helps.`;
+      if(rainNow>=0.2) return `Tip: Ongoing rain—keep an umbrella; roads may be slick.`;
+      return `Tip: All quiet—no strong signals from AQI, wind, UV, or pressure.`;
+    }catch{ return `Tip: —`; }
+  }
 
-renderFromCache();
-init();
-</script>
+  // Interactions
+  function revealOnScroll(){
+    const obs = new IntersectionObserver(entries=>{
+      for(const e of entries){ if(e.isIntersecting){ e.target.classList.add('reveal'); obs.unobserve(e.target); } }
+    }, {threshold: .15});
+    document.querySelectorAll('.card').forEach(el=> obs.observe(el));
+  }
+  function setupShare(){
+    $('shareBtn').onclick = async () => {
+      const yes = $('rainToday').textContent.trim();
+      const txt = `Přerov weather: Rain today: ${yes}. ` + $('reasonToday').innerText.replace(/\s+/g,' ').trim();
+      const data = { title: 'Přerov Weather', text: txt, url: location.href };
+      if (navigator.share) { try{ await navigator.share(data); }catch{} }
+      else { try{ await navigator.clipboard.writeText(`${txt} — ${location.href}`); $('shareBtn').textContent='Copied!'; setTimeout(()=>{$('shareBtn').textContent='Share'},1200);}catch{} }
+    };
+  }
+  function setupRadar(){
+    const link = $('radarOpenLink'); link.href = RADAR_URL;
+    const btn=$('radarToggle'); const slot=$('radarSlot'); let shown=false;
+    btn.onclick = () => {
+      if(!shown){
+        const ifr=document.createElement('iframe');
+        ifr.className='radar';
+        ifr.setAttribute('sandbox','allow-scripts allow-same-origin');
+        ifr.setAttribute('referrerpolicy','no-referrer');
+        ifr.loading='lazy'; ifr.title='CZ radar'; ifr.src=RADAR_URL;
+        slot.appendChild(ifr); btn.textContent='Hide live radar'; shown=true;
+      } else { slot.innerHTML=''; btn.textContent='Show live radar'; shown=false; }
+    };
+  }
+
+  async function init(){
+    revealOnScroll();
+    setupShare();
+    setupRadar();
+    $('asof').textContent = 'loading…';
+    try{
+      const [fc, aq] = await Promise.all([retry(fetchForecast,1), retry(fetchAQ,1)]);
+      try{ localStorage.setItem(LSK, JSON.stringify({fc, aq, ts: Date.now()})); }catch{}
+      paint(fc, aq, false);
+    }catch(err){ $('asof').textContent='failed'; }
+    fetchAlerts();
+  }
+
+  renderFromCache();
+  init();
+  </script>
 </body>
 </html>
