@@ -28,8 +28,8 @@
     @keyframes bgShift{from{background-position:0 0,0 0,0 0}to{background-position:20px -10px,-20px 10px,0 0}}
     a{color:var(--accent)}
     .wrap{max-width:1240px;margin:0 auto;padding:22px;position:relative;z-index:1}
-    .row{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
-    .hero{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(360px,1fr))}
+    .row{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+    .hero{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
     .card{background:linear-gradient(180deg,#16203b,#0f1630);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:0 10px 30px #0006;opacity:0;transform:translateY(8px);transition:opacity .5s ease,transform .5s ease}
     .card.reveal{opacity:1;transform:translateY(0)}
     h1{margin:0;font-size:clamp(22px,2.6vw,32px)} h2{margin:0 0 10px 0;font-size:20px}
@@ -48,7 +48,7 @@
     .banner.gray{background:#0f1430;color:#c5d1ff;border-color:#323c6c}
     #alertText{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 
-    .answer{font-weight:800;letter-spacing:.6px;font-size:clamp(34px,7vw,60px);padding:12px 16px;border-radius:16px;background:#1a2344;min-width:170px;text-align:center;border:1px solid var(--line)}
+    .answer{font-weight:800;letter-spacing:.6px;font-size:clamp(30px,7.5vw,56px);padding:12px 16px;border-radius:16px;background:#1a2344;min-width:170px;text-align:center;border:1px solid var(--line)}
     .answer.ok{background:#142a1b;border-color:#1b5e33}
     .answer.warn{background:#2f260e;border-color:#7a5c12}
     .answer.bad{background:#2f1414;border-color:#8a1f1f}
@@ -85,6 +85,16 @@
 
     .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#2c1a1a;color:#ffd0d0;border:1px solid #8a1f1f;padding:10px 14px;border-radius:10px;box-shadow:0 8px 20px #0008;z-index:50;display:none}
     .toast.show{display:block}
+    .nowWrap{display:flex;align-items:flex-end;gap:10px}
+    .nowTemp{font-weight:800;font-size:clamp(36px,12vw,64px);line-height:1}
+    .nowSub{color:var(--muted);font-size:14px}
+    .outfit{margin-top:8px}
+    @media (max-width:480px){
+      .day{min-width:120px}
+      h2{font-size:18px}
+      .banner{font-size:15px}
+      .card{padding:12px}
+    }
 
     footer{color:#9fb0ff8c;font-size:12px;margin:22px 0 8px;line-height:1.6;text-align:center}
 
@@ -115,6 +125,14 @@
     </header>
 
     <section class="hero">
+      <div class="card reveal" id="nowCard">
+        <h2>🌡️ Now</h2>
+        <div class="nowWrap">
+          <div id="nowTempBig" class="nowTemp">—°C</div>
+          <div class="nowSub" id="nowFeelsSmall">—</div>
+        </div>
+        <div class="outfit sub" id="outfitTip">—</div>
+      </div>
       <div class="card reveal">
         <h2>🌧️ Will it rain <strong>today</strong> in Přerov?</h2>
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
@@ -269,10 +287,27 @@
     const p = periods[0];
     const spanH = Math.max(1, (new Date(p.end)-new Date(p.start)) / 3600000);
     const pop = p.peak?.pop||0; const mm = p.peak?.mm||0;
-    // heuristic: strong if heavy mm or high PoP and decent duration; low if very short and low PoP
     if (mm>=2 || (pop>=80 && spanH>=2)) return {label:'High', cls:''};
     if (pop>=55 && spanH>=1) return {label:'Medium', cls:''};
     return {label:'Low', cls:''};
+  }
+
+  function outfitSuggestion(tC, windKmh, rh, willRainSoon, uvNow, euAQI){
+    const feels = feelsLikeC(tC||0, windKmh||0, rh||50);
+    let base = '';
+    if (feels <= -5) base = 'Heavy coat, hat, gloves';
+    else if (feels <= 3) base = 'Winter coat, warm layers';
+    else if (feels <= 8) base = 'Jacket + layers';
+    else if (feels <= 14) base = 'Light jacket/hoodie';
+    else if (feels <= 20) base = 'Long sleeves or light layer';
+    else if (feels <= 26) base = 'T‑shirt, light pants/shorts';
+    else base = 'Very light clothing, water';
+    const extra = [];
+    if ((windKmh||0) >= 35) extra.push('windproof layer');
+    if (willRainSoon) extra.push('umbrella/waterproof');
+    if ((uvNow||0) >= 6) extra.push('sunscreen/hat');
+    if ((euAQI||0) > 60) extra.push('limit exertion; mask if sensitive');
+    return base + (extra.length? ' • ' + extra.join(' • ') : '');
   }
 
   function aqClass(euAQI){ if(euAQI==null) return {name:'—', cls:''}; if(euAQI>100) return {name:'Extremely poor', cls:'b-poor'}; if(euAQI>80) return {name:'Very poor', cls:'b-poor'}; if(euAQI>60) return {name:'Poor', cls:'b-poor'}; if(euAQI>40) return {name:'Moderate', cls:'b-mod'}; if(euAQI>20) return {name:'Fair', cls:'b-fair'}; return {name:'Good', cls:'b-good'}; }
@@ -380,7 +415,9 @@
 
     // Now line + chips (pressure trend smoothed)
     const idx = idxNow; const t=fc.hourly.temperature_2m?.[idx]; const w=fc.hourly.wind_speed_10m?.[idx]; const rh=fc.hourly.relative_humidity_2m?.[idx]; const cloud=fc.hourly.cloud_cover?.[idx]; const p=fc.hourly.pressure_msl?.[idx];
-    $("nowLine").textContent = `Now: ${t!=null? Math.round(t)+'°C':'—'} (feels ${feelsLikeC(t||0,w||0,rh||50)}°C), wind ${w!=null? Math.round(w)+' km/h':'—'}, clouds ${cloud!=null? Math.round(cloud)+'%':'—'}, pressure ${p!=null? Math.round(p)+' hPa':'—'}`;
+    $("nowLine").textContent = `Now: ${nowTemp!=null? Math.round(nowTemp)+'°C':'—'} (feels ${feelsLikeC(nowTemp||0, nowWind||0, nowRH||50)}°C), wind ${nowWind!=null? Math.round(nowWind)+' km/h':'—'}, clouds ${cloud!=null? Math.round(cloud)+'%':'—'}, pressure ${p!=null? Math.round(p)+' hPa':'—'}`;
+    if ($("nowTempBig")) $("nowTempBig").textContent = (nowTemp!=null? Math.round(nowTemp)+'°C':'—');
+    if ($("nowFeelsSmall")) $("nowFeelsSmall").textContent = `feels ${feelsLikeC(nowTemp||0, nowWind||0, nowRH||50)}°C • wind ${nowWind!=null? Math.round(nowWind)+' km/h':'—'}`;
     const uvNow = fc.current?.uv_index; const uvMax = fc.daily?.uv_index_max?.[0];
     $("uvChips").innerHTML = `<span class="chip">UV now ${uvNow!=null?uvNow.toFixed(1):'—'}</span><span class="chip">UV max ${uvMax!=null?uvMax.toFixed(1):'—'}</span>`;
     // pressure 3h smoothed
@@ -392,6 +429,8 @@
     // AQI + pollen
     const ai=aq.hourly||{}; const aTimes=ai.time||[]; const aIdx=findCurrentHourIndex(aTimes); const pm = ai.pm2_5?.[aIdx]; const o3= ai.ozone?.[aIdx]; const euaqi = ai.european_aqi?.[aIdx]; const cl = aqClass(euaqi); const badge = $("aqBadge"); badge.textContent = cl.name + (euaqi!=null? ` (${Math.round(euaqi)})`:''); badge.className = 'badge '+cl.cls; $("aqLine").textContent = `PM₂.₅ ${pm!=null? Math.round(pm)+' µg/m³':'—'} • O₃ ${o3!=null? Math.round(o3)+' µg/m³':'—'}`;
     const alder=ai.alder_pollen?.[aIdx], birch=ai.birch_pollen?.[aIdx], grass=ai.grass_pollen?.[aIdx], rag=ai.ragweed_pollen?.[aIdx]; const polTxt=[alder!=null?`Alder ${Math.round(alder)}`:null,birch!=null?`Birch ${Math.round(birch)}`:null,grass!=null?`Grass ${Math.round(grass)}`:null,rag!=null?`Ragweed ${Math.round(rag)}`:null].filter(Boolean).join(' • '); $("pollenLine").textContent = polTxt || 'Pollen: —';
+    const rainSoon = (lastHours24||[]).slice(0,6).some(isWet);
+    if ($("outfitTip")) $("outfitTip").textContent = outfitSuggestion(nowTemp, nowWind, nowRH, rainSoon, uvNow, euaqi);
 
     // 7‑day
     const d = fc.daily||{}; const n=Math.min(7,(d.time||[]).length); let html=''; for(let i=0;i<n;i++){ const [ico,label]=wmoIcon(d.weathercode?.[i]); const day=fmtDay(d.time?.[i]); const hi=d.temperature_2m_max?.[i]; const lo=d.temperature_2m_min?.[i]; const pop=d.precipitation_probability_max?.[i]; html += `<div class="day"><div class="sub">${day}</div><div class="w">${ico}</div><div>${label}</div><div class="t"><strong>${Math.round(hi)}°</strong> / ${Math.round(lo)}°</div><div class="sub">PoP ${pop!=null?pop+'%':'—'}</div></div>`; } $("daysStrip").innerHTML = html;
