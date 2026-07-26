@@ -15,7 +15,7 @@ await mkdir(resolve(output, "data"), { recursive: true });
 for (const file of ["index.html", "Weather.html", "README.md"]) {
   await cp(resolve(file), resolve(output, file));
 }
-for (const file of ["app.mjs", "weather-core.mjs", "suncalc-loader.mjs"]) {
+for (const file of ["app.mjs", "weather-core.mjs", "i18n.mjs", "suncalc-loader.mjs"]) {
   await cp(resolve("scripts", file), resolve(output, "scripts", file));
 }
 await cp(

@@ -10,6 +10,8 @@ export const THRESHOLDS = Object.freeze({
   precipitationProbabilityPercent: 60,
 });
 
+export const NOWCAST_THRESHOLD_MM_PER_15_MINUTES = 0.05;
+
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const API_TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
 const SEVERITY_RANK = Object.freeze({ green: 0, yellow: 1, orange: 2, red: 3 });
@@ -109,6 +111,15 @@ export function pragueLocalDateToInstant(dateKey, hour = 12, minute = 0) {
   return guess;
 }
 
+export function apiTimestampToPragueInstant(timestamp) {
+  if (typeof timestamp !== "string" || !API_TIMESTAMP_RE.test(timestamp)) {
+    throw new TypeError(`Invalid Open-Meteo timestamp: ${String(timestamp)}`);
+  }
+  const [dateKey, time] = timestamp.slice(0, 16).split("T");
+  const [hour, minute] = time.split(":").map(Number);
+  return pragueLocalDateToInstant(dateKey, hour, minute);
+}
+
 export function formatPragueIso(now = new Date()) {
   const p = zonedParts(now);
   const localAsUtc = Date.UTC(
@@ -130,6 +141,56 @@ export function formatPragueIso(now = new Date()) {
 export function totalPrecipitationMm(hour) {
   if (Number.isFinite(hour?.precipitation)) return hour.precipitation;
   return (Number(hour?.rain) || 0) + (Number(hour?.showers) || 0);
+}
+
+export function getNextRain(minutely15, now = new Date(), {
+  thresholdMm = NOWCAST_THRESHOLD_MM_PER_15_MINUTES,
+  nearTermMinutes = 60,
+  horizonMinutes = 360,
+} = {}) {
+  const times = minutely15?.time;
+  const precipitation = minutely15?.precipitation;
+  if (!Array.isArray(times) || !Array.isArray(precipitation)
+    || !times.length || times.length !== precipitation.length) {
+    return { state: "unavailable" };
+  }
+
+  const nowMs = now.getTime();
+  if (!Number.isFinite(nowMs)) return { state: "unavailable" };
+  const horizonMs = nowMs + horizonMinutes * 60_000;
+
+  for (let index = 0; index < times.length; index += 1) {
+    const amountMm = Number(precipitation[index]);
+    if (!Number.isFinite(amountMm) || amountMm < thresholdMm) continue;
+
+    let intervalEnd;
+    try {
+      intervalEnd = apiTimestampToPragueInstant(times[index]);
+    } catch {
+      continue;
+    }
+    const intervalEndMs = intervalEnd.getTime();
+    const intervalStartMs = intervalEndMs - 15 * 60_000;
+    if (intervalEndMs <= nowMs) continue;
+    if (intervalStartMs > horizonMs) break;
+
+    const exactMinutes = Math.max(0, (intervalStartMs - nowMs) / 60_000);
+    const minutes = exactMinutes <= 0 ? 0 : Math.max(5, Math.ceil(exactMinutes / 5) * 5);
+    const common = {
+      minutes,
+      amountMm,
+      startsAt: new Date(intervalStartMs),
+      intervalEnd,
+    };
+    if (minutes === 0) return { state: "raining", ...common };
+    if (minutes <= nearTermMinutes) return { state: "within-hour", ...common };
+    return { state: "later", ...common };
+  }
+
+  return {
+    state: "dry",
+    horizonMinutes,
+  };
 }
 
 export function isWetHour(hour, thresholds = THRESHOLDS) {
@@ -227,6 +288,7 @@ export function recordsFromHourly(hourly) {
     rain: hourly.rain[index],
     showers: hourly.showers[index],
     temperature_2m: hourly.temperature_2m?.[index],
+    apparent_temperature: hourly.apparent_temperature?.[index],
     relative_humidity_2m: hourly.relative_humidity_2m?.[index],
     cloud_cover: hourly.cloud_cover?.[index],
     pressure_msl: hourly.pressure_msl?.[index],
@@ -379,11 +441,13 @@ export function alertPresentation(level) {
 export function filterOlomoucRegionAlerts(items) {
   const unique = new Map();
   for (const item of Array.isArray(items) ? items : []) {
+    const workerVerified = item?.regionVerified === true || item?.region === "olomoucky";
     const searchable = `${item?.title || ""} ${item?.area || ""}`
       .normalize("NFD")
       .replace(/\p{Diacritic}/gu, "")
       .toLowerCase();
-    if (!searchable.includes("olomoucky kraj")
+    if (!workerVerified
+      && !searchable.includes("olomoucky kraj")
       && !searchable.includes("olomouc region")
       && !searchable.includes("prerov")) {
       continue;

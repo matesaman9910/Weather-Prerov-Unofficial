@@ -8,6 +8,7 @@ import {
   buildWetPeriods,
   createDailySnapshot,
   filterOlomoucRegionAlerts,
+  getNextRain,
   getPragueDateKey,
   getPragueHourKey,
   groupHoursByApiDate,
@@ -130,6 +131,48 @@ test("canonical precipitation does not double count components", () => {
   assert.equal(totalPrecipitationMm({ rain: 0.7, showers: 0.3 }), 1);
 });
 
+test("15-minute nowcast reports rain already in progress", () => {
+  const result = getNextRain({
+    time: ["2026-07-26T12:15", "2026-07-26T12:30"],
+    precipitation: [0.08, 0],
+  }, new Date("2026-07-26T10:07:00Z"));
+  assert.equal(result.state, "raining");
+  assert.equal(result.minutes, 0);
+  assert.equal(result.amountMm, 0.08);
+});
+
+test("15-minute nowcast rounds a future onset to a useful five-minute estimate", () => {
+  const result = getNextRain({
+    time: ["2026-07-26T12:15", "2026-07-26T12:30", "2026-07-26T12:45"],
+    precipitation: [0, 0.12, 0],
+  }, new Date("2026-07-26T10:07:00Z"));
+  assert.equal(result.state, "within-hour");
+  assert.equal(result.minutes, 10);
+  assert.equal(result.startsAt.toISOString(), "2026-07-26T10:15:00.000Z");
+});
+
+test("15-minute nowcast distinguishes later rain from a dry next hour", () => {
+  const result = getNextRain({
+    time: ["2026-07-26T12:15", "2026-07-26T14:00"],
+    precipitation: [0, 0.2],
+  }, new Date("2026-07-26T10:00:00Z"));
+  assert.equal(result.state, "later");
+  assert.equal(result.minutes, 105);
+});
+
+test("15-minute nowcast explicitly reports dry and unavailable data", () => {
+  assert.deepEqual(getNextRain({
+    time: ["2026-07-26T12:15"],
+    precipitation: [0],
+  }, new Date("2026-07-26T10:00:00Z")), {
+    state: "dry",
+    horizonMinutes: 360,
+  });
+  assert.deepEqual(getNextRain({ time: [], precipitation: [] }), {
+    state: "unavailable",
+  });
+});
+
 test("one wet hourly record ends at the next hourly boundary", () => {
   const periods = buildWetPeriods([
     {
@@ -237,6 +280,16 @@ test("unstructured nationwide proxy results are narrowed to Olomouc titles", () 
   ]);
   assert.equal(filtered.length, 1);
   assert.match(filtered[0].title, /Olomoucký/);
+});
+
+test("strictly verified Worker items do not need title matching", () => {
+  const filtered = filterOlomoucRegionAlerts([{
+    title: "Yellow warning",
+    region: "olomoucky",
+    regionVerified: true,
+    level: "yellow",
+  }]);
+  assert.equal(filtered.length, 1);
 });
 
 test("active red warning controls severity", () => {

@@ -4,6 +4,15 @@ A mobile-first, unofficial weather dashboard for Přerov, Czechia. The main ques
 
 Live site: [matesaman9910.github.io/Weather-Prerov-Unofficial](https://matesaman9910.github.io/Weather-Prerov-Unofficial/)
 
+## Version 2.1
+
+- Adds a separate live “next rain” card based on Open-Meteo’s 15-minute precipitation forecast for Central Europe.
+- Uses Open-Meteo’s `apparent_temperature` instead of a browser-side feels-like approximation.
+- Provides persistent Czech and English UI modes.
+- Collapses secondary charts and detail cards by default on mobile while keeping the daily rain answer, next-rain status, warnings, and current conditions immediately visible.
+- Keeps the radar embedded and lazy-loaded on demand.
+- Adds the audited Meteoalarm Worker source and tests. The Worker now filters `areaDesc` and `EMMA_ID` geocodes strictly and never falls back to nationwide alerts.
+
 ## Why the daily answer is locked
 
 Version 1.9 calculated “today” independently in every browser from the current hour to midnight. The answer could therefore change after a predicted shower passed, after an Open-Meteo model update, or because another visitor had a different cache age or device timezone.
@@ -23,11 +32,15 @@ Weather.html                       Compatibility redirect for the old URL
 data/daily-snapshot.json           Initial generated snapshot
 scripts/app.mjs                    Browser application
 scripts/weather-core.mjs           Shared pure date/decision/alert logic
+scripts/i18n.mjs                   Czech and English UI messages
 scripts/suncalc-loader.mjs         Explicit external dependency loader
 scripts/generate-daily-snapshot.mjs
 scripts/fetch-previous-snapshot.mjs
 scripts/prepare-site.mjs
 tests/weather-core.test.mjs
+tests/meteoalarm-worker.test.mjs
+worker/worker.js                   Cloudflare Worker module
+worker/wrangler.jsonc              Worker deployment configuration
 .github/workflows/publish-weather.yml
 ```
 
@@ -43,6 +56,8 @@ The application remains a static site. It has no database, server, private API k
 - Peaks rank by precipitation amount, then probability, then earliest timestamp
 
 The product preserves the existing “total precipitation” meaning. Open-Meteo’s total can include snow; the UI does not double-count the `rain` and `showers` components.
+
+The live next-rain card is intentionally separate from the locked daily answer. It uses `0.05 mm` per 15-minute interval, equivalent to the daily card’s `0.2 mm/h` amount threshold. It reports ongoing rain, rain beginning within the next hour, or the next measurable signal within six hours.
 
 ## Local development
 
@@ -98,6 +113,22 @@ The repository owner must perform this one-time setting because it is outside th
 4. Run the workflow once manually and verify the environment URL.
 
 No repository secret is required.
+
+## Meteoalarm Worker
+
+The deployed Worker endpoint is:
+
+```text
+https://weatherwebsiteprerov.matejkratochvilbilina.workers.dev
+```
+
+Its source is versioned in `worker/worker.js`. The Worker reads Meteoalarm’s maintained Atom compatibility feed, parses CAP fields, and strictly selects regions using structured `areaDesc` values and `EMMA_ID` prefixes. An Olomouc request therefore returns only `CZ071…` or explicitly Olomouc-matching entries; zero matches produces an empty list rather than a nationwide fallback.
+
+After authenticating Wrangler, deploy it from the repository root with:
+
+```sh
+npx wrangler deploy --config worker/wrangler.jsonc
+```
 
 ## Data, privacy, and disclaimer
 

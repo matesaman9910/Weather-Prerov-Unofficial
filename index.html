@@ -79,6 +79,7 @@
     #alertText { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 
     header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+    .header-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
     h1 { margin: 0; font-size: clamp(22px, 2.6vw, 32px); }
     h2 { margin: 0 0 10px; font-size: 20px; }
     .sub { color: var(--muted); font-size: 14px; }
@@ -112,6 +113,15 @@
     .answer.warn { background: #2f260e; border-color: #7a5c12; }
     .answer.bad { background: #2f1414; border-color: #8a1f1f; }
     .answer.pending { color: var(--muted); font-size: clamp(20px, 5vw, 36px); }
+    .nowcast-value {
+      margin: 2px 0 8px;
+      color: #dbe7ff;
+      font-size: clamp(27px, 5vw, 44px);
+      font-weight: 800;
+      line-height: 1.1;
+    }
+    .nowcast-card.wet { border-color: #4a78c8; background: linear-gradient(180deg, #172b4d, #101a35); }
+    .nowcast-card.dry { border-color: #1b5e33; }
     .reason { min-height: 2.8em; margin-top: 8px; color: var(--muted); font-size: 14px; }
     .notice { margin-top: 8px; color: #ffe7b5; font-size: 13px; }
     .chart { width: 100%; height: 240px; }
@@ -145,9 +155,24 @@
     iframe.radar { width: 100%; height: 420px; border: 1px solid var(--line); border-radius: 14px; background: #0b0f1a; }
     .alerts-list { margin: 6px 0 0 16px; padding: 0; }
     .alerts-list li { margin-bottom: 8px; }
+    details.card > summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 0;
+      cursor: pointer;
+      list-style: none;
+      font-size: 20px;
+      font-weight: 700;
+    }
+    details.card > summary::-webkit-details-marker { display: none; }
+    details.card > summary::after { content: "＋"; color: var(--muted); font-weight: 400; }
+    details.card[open] > summary { margin-bottom: 10px; }
+    details.card[open] > summary::after { content: "−"; }
     footer { margin: 22px 0 8px; color: #9fb0ff8c; font-size: 12px; line-height: 1.6; text-align: center; }
 
-    @media (max-width: 480px) {
+    @media (max-width: 600px) {
       .wrap { padding: 14px; }
       .hero, .row { grid-template-columns: minmax(0, 1fr); }
       .card { padding: 14px; }
@@ -157,6 +182,9 @@
       .answer { min-width: 0; }
       .bar-row { align-items: flex-start; flex-direction: column; }
       #asof { padding-left: 4px; }
+      header { align-items: flex-start; }
+      .header-actions { max-width: 140px; }
+      details.card:not([open]) { padding-bottom: 14px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -171,119 +199,128 @@
       <div class="bar-row">
         <button id="alertBar" class="banner gray" type="button" aria-live="polite" aria-expanded="false">
           <span aria-hidden="true">⚠️</span>
-          <span id="alertText">Checking alerts…</span>
+          <span id="alertText" data-i18n="checkingAlerts">Checking alerts…</span>
         </button>
-        <div class="sub" id="asof" aria-live="polite">Loading live details…</div>
+        <div class="sub" id="asof" aria-live="polite" data-i18n="loadingLive">Loading live details…</div>
       </div>
     </div>
 
     <header>
       <div>
-        <h1>Přerov Weather — Rain-First</h1>
-        <div class="sub">One shared daily answer. Live forecast details update separately.</div>
+        <h1 data-i18n="pageTitle">Přerov Weather — Rain-First</h1>
+        <div class="sub" data-i18n="subtitle">One shared daily answer. Live forecast details update separately.</div>
       </div>
-      <button id="shareBtn" class="btn" type="button">Share</button>
+      <div class="header-actions">
+        <button id="languageBtn" class="btn" type="button">Česky</button>
+        <button id="shareBtn" class="btn" type="button" data-i18n="share">Share</button>
+      </div>
     </header>
 
-    <div id="snapshotStatus" class="sub status-line" aria-live="polite">Loading locked daily snapshot…</div>
+    <div id="snapshotStatus" class="sub status-line" aria-live="polite" data-i18n="snapshotLoading">Loading locked daily snapshot…</div>
 
     <main>
       <section class="hero">
         <article class="card">
-          <h2>🌧️ Will it rain today in Přerov?</h2>
+          <h2 data-i18n="rainTodayTitle">🌧️ Will it rain today in Přerov?</h2>
           <div class="answer-row">
-            <div id="rainToday" class="answer pending">PENDING</div>
-            <div id="highlightsToday" class="sub">Waiting for the shared snapshot.</div>
+            <div id="rainToday" class="answer pending" data-i18n="pending">PENDING</div>
+            <div id="highlightsToday" class="sub" data-i18n="waitingSnapshot">Waiting for the shared snapshot.</div>
           </div>
-          <div id="reasonToday" class="reason">The browser will not invent a replacement answer.</div>
+          <div id="reasonToday" class="reason" data-i18n="noReplacement">The browser will not invent a replacement answer.</div>
           <div id="snapshotDivergence" class="notice" hidden></div>
         </article>
 
+        <article id="nowcastCard" class="card nowcast-card">
+          <h2 data-i18n="nextRainTitle">☔ Next rain</h2>
+          <div id="nextRain" class="nowcast-value" aria-live="polite" data-i18n="checkingNowcast">Checking the next hour…</div>
+          <div id="nextRainDetail" class="sub" data-i18n="nowcastLiveNote">Live 15-minute forecast; this does not change the locked daily answer.</div>
+        </article>
+
         <article class="card">
-          <h2>🌧️ Will it rain tomorrow?</h2>
+          <h2 data-i18n="rainTomorrowTitle">🌧️ Will it rain tomorrow?</h2>
           <div class="answer-row">
-            <div id="rainTomorrow" class="answer pending">PENDING</div>
-            <div id="highlightsTomorrow" class="sub">Waiting for the shared snapshot.</div>
+            <div id="rainTomorrow" class="answer pending" data-i18n="pending">PENDING</div>
+            <div id="highlightsTomorrow" class="sub" data-i18n="waitingSnapshot">Waiting for the shared snapshot.</div>
           </div>
-          <div id="reasonTomorrow" class="reason">Published with the same dated snapshot.</div>
+          <div id="reasonTomorrow" class="reason" data-i18n="sameSnapshot">Published with the same dated snapshot.</div>
         </article>
       </section>
 
       <section class="row" style="margin-top:14px">
-        <article class="card">
-          <h2>📈 Hourly precipitation (next 24h)</h2>
+        <details class="card" data-mobile-collapse open>
+          <summary data-i18n="rainChartTitle">📈 Hourly precipitation (next 24h)</summary>
           <canvas id="rainChart" class="chart" aria-label="Live hourly precipitation amount and probability chart"></canvas>
-          <div id="rainChartSummary" class="sub legend">Latest forecast details. Blue bars: total precipitation. Yellow line: probability.</div>
-        </article>
-        <article class="card">
-          <h2>🌡️ Hourly temperature &amp; wind (next 24h)</h2>
+          <div id="rainChartSummary" class="sub legend" data-i18n="rainChartInitial">Latest forecast details. Blue bars: total precipitation. Yellow line: probability.</div>
+        </details>
+        <details class="card" data-mobile-collapse open>
+          <summary data-i18n="tempChartTitle">🌡️ Hourly temperature &amp; wind (next 24h)</summary>
           <canvas id="tempWindChart" class="chart" aria-label="Live hourly temperature and wind chart"></canvas>
-          <div id="tempChartSummary" class="sub legend">Latest forecast details. Yellow line: temperature. Bars: wind speed.</div>
-        </article>
+          <div id="tempChartSummary" class="sub legend" data-i18n="tempChartInitial">Latest forecast details. Yellow line: temperature. Bars: wind speed.</div>
+        </details>
       </section>
 
       <section class="row" style="margin-top:14px">
         <article class="card">
-          <h2>🧭 Current conditions</h2>
+          <h2 data-i18n="currentTitle">🧭 Current conditions</h2>
           <div id="nowLine" class="sub">—</div>
           <div id="uvChips" class="chips"></div>
-          <div id="dailyTip" class="sub" style="margin-top:10px">Tip: —</div>
+          <div id="dailyTip" class="sub" style="margin-top:10px" data-i18n="tipInitial">Tip: —</div>
         </article>
-        <article class="card">
-          <h2>☀️ Sun &amp; Moon</h2>
+        <details class="card" data-mobile-collapse open>
+          <summary data-i18n="sunMoonTitle">☀️ Sun &amp; Moon</summary>
           <div id="sunLine" class="sub">Sun: —</div>
-          <div id="moonLine" class="sub">Moon: loading dependency…</div>
-        </article>
+          <div id="moonLine" class="sub" data-i18n="moonLoading">Moon: loading dependency…</div>
+        </details>
       </section>
 
-      <section class="card" style="margin-top:14px">
-        <h2>📅 Seven-day forecast</h2>
+      <details class="card" data-mobile-collapse open style="margin-top:14px">
+        <summary data-i18n="sevenDayTitle">📅 Seven-day forecast</summary>
         <div id="daysStrip" class="days" aria-live="polite"></div>
-      </section>
+      </details>
 
       <section class="row" style="margin-top:14px">
-        <article class="card">
-          <h2>🌫️ Air quality (now) + pollen</h2>
+        <details class="card" data-mobile-collapse open>
+          <summary data-i18n="airQualityTitle">🌫️ Air quality (now) + pollen</summary>
           <div id="aqBadge" class="badge">—</div>
           <div id="aqLine" class="sub">—</div>
           <div id="pollenLine" class="sub">—</div>
-          <div id="aqStatus" class="sub tiny">Loading latest air-quality data…</div>
-        </article>
-        <article class="card">
-          <h2>🛰️ Radar</h2>
+          <div id="aqStatus" class="sub tiny" data-i18n="airQualityLoading">Loading latest air-quality data…</div>
+        </details>
+        <details class="card" data-mobile-collapse open>
+          <summary data-i18n="radarTitle">🛰️ Radar</summary>
           <div class="radar-wrap">
-            <button id="radarToggle" class="btn" type="button">Show live radar</button>
+            <button id="radarToggle" class="btn" type="button" data-i18n="showRadar">Show live radar</button>
             <div id="radarSlot"></div>
-            <div class="sub">If the embed is blocked, <a id="radarOpenLink" href="#" target="_blank" rel="noopener">open radar in a new tab</a>.</div>
+            <div class="sub"><span data-i18n="radarFallbackBefore">If the embed is blocked, </span><a id="radarOpenLink" href="#" target="_blank" rel="noopener" data-i18n="radarFallbackLink">open radar in a new tab</a><span data-i18n="radarFallbackAfter">.</span></div>
           </div>
-        </article>
+        </details>
       </section>
 
       <section class="row" style="margin-top:14px">
         <article class="card" id="alertsPanel" hidden>
-          <h2>⚠️ Severe weather details</h2>
+          <h2 data-i18n="alertsTitle">⚠️ Severe weather details</h2>
           <div id="alertsSummary" class="sub">—</div>
           <ul id="alertsList" class="sub alerts-list"></ul>
-          <div class="sub">Regional feed: Olomouc Region. <a href="https://www.meteoalarm.org/en/region/CZ" target="_blank" rel="noopener">Open Meteoalarm map</a>.</div>
+          <div class="sub"><span data-i18n="regionalFeedBefore">Regional feed: Olomouc Region. </span><a href="https://www.meteoalarm.org/en/live/" target="_blank" rel="noopener" data-i18n="openMeteoalarm">Open Meteoalarm map</a><span data-i18n="regionalFeedAfter">.</span></div>
         </article>
-        <article class="card">
-          <h2>🧭 Sources</h2>
+        <details class="card" data-mobile-collapse open>
+          <summary data-i18n="sourcesTitle">🧭 Sources</summary>
           <ul class="sub">
-            <li><a href="https://open-meteo.com/en/docs" target="_blank" rel="noopener">Open-Meteo weather forecast API</a></li>
-            <li><a href="https://open-meteo.com/en/docs/air-quality-api" target="_blank" rel="noopener">Open-Meteo air quality and pollen API</a></li>
-            <li><a href="https://www.meteoalarm.org/en/live/" target="_blank" rel="noopener">Meteoalarm European warnings</a></li>
-            <li><a href="https://vystrahy-cr.chmi.cz/" target="_blank" rel="noopener">ČHMÚ official Czech warnings</a></li>
-            <li><a href="https://produkty.chmi.cz/radar/" target="_blank" rel="noopener">ČHMÚ radar and nowcasting</a></li>
-            <li><a href="https://github.com/mourner/suncalc" target="_blank" rel="noopener">SunCalc astronomical calculations</a></li>
+            <li><a href="https://open-meteo.com/en/docs" target="_blank" rel="noopener" data-i18n="sourceForecast">Open-Meteo weather forecast API</a></li>
+            <li><a href="https://open-meteo.com/en/docs/air-quality-api" target="_blank" rel="noopener" data-i18n="sourceAir">Open-Meteo air quality and pollen API</a></li>
+            <li><a href="https://www.meteoalarm.org/en/live/" target="_blank" rel="noopener" data-i18n="sourceMeteoalarm">Meteoalarm European warnings</a></li>
+            <li><a href="https://vystrahy-cr.chmi.cz/" target="_blank" rel="noopener" data-i18n="sourceChmiWarnings">ČHMÚ official Czech warnings</a></li>
+            <li><a href="https://produkty.chmi.cz/radar/" target="_blank" rel="noopener" data-i18n="sourceChmiRadar">ČHMÚ radar and nowcasting</a></li>
+            <li><a href="https://github.com/mourner/suncalc" target="_blank" rel="noopener" data-i18n="sourceSunCalc">SunCalc astronomical calculations</a></li>
           </ul>
-        </article>
+        </details>
       </section>
     </main>
 
     <footer>
-      <strong>Disclaimer.</strong> Experimental hobby project. Unofficial. No guarantee of accuracy, timeliness, or availability. Verify conditions with ČHMÚ and Meteoalarm.<br>
-      <strong>Data.</strong> Open-Meteo (forecast, AQ, pollen). Alerts via Meteoalarm (proxied). Radar © ČHMÚ &amp; partners. No personal data is collected.<br>
-      <strong>Contact.</strong> <a href="mailto:matesaman9910@gmail.com">matesaman9910@gmail.com</a> · <strong>Copyright.</strong> © 2025–2026 matesaman9910. All rights reserved.
+      <strong data-i18n="disclaimerLabel">Disclaimer.</strong> <span data-i18n="disclaimer">Experimental hobby project. Unofficial. No guarantee of accuracy, timeliness, or availability. Verify conditions with ČHMÚ and Meteoalarm.</span><br>
+      <strong data-i18n="dataLabel">Data.</strong> <span data-i18n="data">Open-Meteo (forecast, AQ, pollen). Alerts via Meteoalarm (proxied). Radar © ČHMÚ &amp; partners. No personal data is collected.</span><br>
+      <strong data-i18n="contactLabel">Contact.</strong> <a href="mailto:matesaman9910@gmail.com">matesaman9910@gmail.com</a> · <strong data-i18n="copyrightLabel">Copyright.</strong> © 2025–2026 matesaman9910. <span data-i18n="rightsReserved">All rights reserved.</span>
     </footer>
   </div>
 
