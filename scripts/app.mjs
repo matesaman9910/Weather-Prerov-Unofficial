@@ -19,7 +19,7 @@ import {
   totalPrecipitationMm,
   validateSnapshot,
 } from "./weather-core.mjs";
-import { createTranslator, resolveLanguage } from "./i18n.mjs";
+import { createTranslator, resolveLanguage } from "./i18n.mjs?v=2.2.1";
 import { waitForSunCalc } from "./suncalc-loader.mjs";
 
 const APP_VERSION = "2.2.1";
