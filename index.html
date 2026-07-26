@@ -9,150 +9,229 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; connect-src 'self' https://api.open-meteo.com https://air-quality-api.open-meteo.com https://weatherwebsiteprerov.matejkratochvilbilina.workers.dev; img-src 'self' data:; style-src 'self' 'unsafe-inline'; frame-src https://radar.bourky.cz; base-uri 'none'; form-action 'none'">
   <style>
     :root {
-      --bg: #0b1020;
-      --card: #111731;
-      --ink: #e8ecff;
-      --muted: #b6c0ff;
-      --line: #2b345c;
-      --ok: #22c55e;
-      --warn: #f59e0b;
-      --bad: #ef4444;
-      --accent: #77a8ff;
-      --radius: 18px;
+      --bg: #08111d;
+      --surface: #101b2a;
+      --surface-raised: #142235;
+      --surface-soft: #0c1725;
+      --ink: #edf4fb;
+      --muted: #9eb0c3;
+      --line: #26384a;
+      --line-strong: #38516a;
+      --accent: #7fc4ef;
+      --ok: #51c785;
+      --warn: #e6b85c;
+      --bad: #ef7b7b;
+      --radius: 16px;
       --glow: transparent;
       --glow-alpha: 0%;
     }
 
     * { box-sizing: border-box; }
+    html { color-scheme: dark; }
     html, body { min-height: 100%; }
     body {
       margin: 0;
       color: var(--ink);
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
       background:
-        radial-gradient(1100px 700px at 10% -10%, #243056 10%, transparent 60%),
-        radial-gradient(900px 700px at 110% 10%, #1a1f35 5%, transparent 60%),
-        linear-gradient(180deg, var(--bg), #0a0f1e);
-      animation: background-shift 14s ease-in-out infinite alternate;
+        radial-gradient(900px 500px at 12% -10%, #16314a 0%, transparent 65%),
+        var(--bg);
     }
-
     body::after {
       content: "";
       pointer-events: none;
       position: fixed;
       inset: 0;
       z-index: 0;
-      box-shadow: inset 0 0 70px color-mix(in srgb, var(--glow) var(--glow-alpha), transparent);
+      box-shadow: inset 0 0 64px color-mix(in srgb, var(--glow) var(--glow-alpha), transparent);
     }
 
-    @keyframes background-shift {
-      from { background-position: 0 0, 0 0, 0 0; }
-      to { background-position: 20px -10px, -20px 10px, 0 0; }
-    }
-
-    a { color: var(--accent); }
+    a { color: var(--accent); text-underline-offset: 3px; }
     button { font: inherit; }
-    .wrap { position: relative; z-index: 1; max-width: 1240px; margin: 0 auto; padding: 22px; }
-    .topbar { position: sticky; top: 0; z-index: 20; padding-top: 8px; backdrop-filter: blur(6px); }
-    .bar-row { display: flex; gap: 10px; align-items: stretch; justify-content: space-between; margin-bottom: 12px; }
+    .wrap { position: relative; z-index: 1; max-width: 1240px; margin: 0 auto; padding: 24px; }
+    .topbar { position: sticky; top: 0; z-index: 20; padding-top: 6px; background: linear-gradient(var(--bg) 15%, transparent); }
+    .bar-row { display: flex; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 18px; }
     .banner {
       flex: 1;
       display: flex;
-      gap: 12px;
-      align-items: flex-start;
+      gap: 10px;
+      align-items: center;
       justify-content: center;
-      max-height: 64px;
+      max-height: 54px;
       overflow: hidden;
-      padding: 14px 16px;
+      padding: 11px 15px;
       border: 1px solid var(--line);
-      border-radius: 16px;
-      font-size: clamp(15px, 3.2vw, 19px);
-      line-height: 1.25;
+      border-radius: 12px;
+      font-size: 15px;
+      line-height: 1.35;
       cursor: pointer;
     }
     .banner.expand { max-height: none; }
-    .banner.green { color: #c9ffe0; background: #0f2818; border-color: #1b5e33; }
-    .banner.yellow { color: #ffe7b5; background: #2e2609; border-color: #7a5c12; }
-    .banner.orange { color: #ffd6b3; background: #2e1b08; border-color: #9c5416; }
-    .banner.red { color: #ffd0d0; background: #2d0d0d; border-color: #8a1f1f; }
-    .banner.gray { color: #c5d1ff; background: #0f1430; border-color: #323c6c; }
+    .banner.green { color: #c9f4da; background: #0d271c; border-color: #245d3d; }
+    .banner.yellow { color: #f4dfb4; background: #2a230f; border-color: #715b24; }
+    .banner.orange { color: #f3cfac; background: #2b1b0d; border-color: #845026; }
+    .banner.red { color: #f4c4c4; background: #2b1215; border-color: #7a3038; }
+    .banner.gray { color: #c7d5e5; background: #101c2c; border-color: #30465c; }
     #alertText { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 
-    header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+    header { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; margin: 22px 0 6px; }
     .header-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
-    h1 { margin: 0; font-size: clamp(22px, 2.6vw, 32px); }
-    h2 { margin: 0 0 10px; font-size: 20px; }
-    .sub { color: var(--muted); font-size: 14px; }
+    h1 { margin: 0; font-size: clamp(27px, 3.2vw, 42px); line-height: 1.08; letter-spacing: -.035em; }
+    h2 { margin: 0 0 14px; font-size: 18px; line-height: 1.25; letter-spacing: -.01em; }
+    .sub { color: var(--muted); font-size: 14px; line-height: 1.5; }
     .tiny { font-size: 12px; }
-    .status-line { min-height: 1.4em; margin-top: 8px; }
-    .hero, .row { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+    .status-line { min-height: 1.4em; margin: 8px 0 16px; }
+    .section-gap { margin-top: 16px; }
+    .hero { display: grid; gap: 14px; grid-template-columns: 1fr 1.06fr 1fr; }
+    .row { display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .card {
-      padding: 18px;
+      min-width: 0;
+      padding: 20px;
       border: 1px solid var(--line);
       border-radius: var(--radius);
-      background: linear-gradient(180deg, #16203b, #0f1630);
-      box-shadow: 0 10px 30px #0006;
+      background: var(--surface);
+      box-shadow: 0 14px 34px #00000030;
       opacity: 0;
-      transform: translateY(8px);
-      transition: opacity .5s ease, transform .5s ease;
+      transform: translateY(6px);
+      transition: opacity .35s ease, transform .35s ease, border-color .2s ease;
     }
     .card.reveal { opacity: 1; transform: translateY(0); }
-    .answer-row { display: flex; align-items: center; gap: 14px; }
+    .card:hover { border-color: var(--line-strong); }
+    .hero .card { min-height: 218px; }
+    .answer-row { display: grid; grid-template-columns: minmax(118px, 154px) 1fr; align-items: center; gap: 14px; }
     .answer {
-      min-width: 170px;
-      padding: 12px 16px;
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      background: #1a2344;
-      font-size: clamp(34px, 7vw, 60px);
-      font-weight: 800;
-      letter-spacing: .6px;
+      padding: 12px 14px;
+      border: 1px solid var(--line-strong);
+      border-radius: 12px;
+      background: var(--surface-raised);
+      font-size: clamp(38px, 5vw, 56px);
+      font-weight: 780;
+      letter-spacing: -.03em;
+      line-height: 1.1;
       text-align: center;
     }
-    .answer.ok { background: #142a1b; border-color: #1b5e33; }
-    .answer.warn { background: #2f260e; border-color: #7a5c12; }
-    .answer.bad { background: #2f1414; border-color: #8a1f1f; }
-    .answer.pending { color: var(--muted); font-size: clamp(20px, 5vw, 36px); }
+    .answer.ok { color: #d9f8e6; background: #10291e; border-color: #286344; }
+    .answer.warn { color: #f4dfb4; background: #2b240f; border-color: #715b24; }
+    .answer.bad { color: #f5cccc; background: #2b1518; border-color: #7a3038; }
+    .answer.pending { color: var(--muted); font-size: clamp(20px, 4vw, 32px); }
     .nowcast-value {
-      margin: 2px 0 8px;
-      color: #dbe7ff;
-      font-size: clamp(27px, 5vw, 44px);
-      font-weight: 800;
-      line-height: 1.1;
+      margin: 20px 0 10px;
+      max-width: 12ch;
+      color: var(--ink);
+      font-size: clamp(32px, 4.7vw, 48px);
+      font-weight: 780;
+      letter-spacing: -.035em;
+      line-height: 1.03;
     }
-    .nowcast-card.wet { border-color: #4a78c8; background: linear-gradient(180deg, #172b4d, #101a35); }
-    .nowcast-card.dry { border-color: #1b5e33; }
-    .reason { min-height: 2.8em; margin-top: 8px; color: var(--muted); font-size: 14px; }
-    .notice { margin-top: 8px; color: #ffe7b5; font-size: 13px; }
+    .nowcast-card { border-top: 3px solid var(--accent); }
+    .nowcast-card.wet { border-top-color: #6bb5ef; background: #102238; }
+    .nowcast-card.dry { border-top-color: var(--ok); }
+    .reason { min-height: 2.8em; margin-top: 10px; color: var(--muted); font-size: 14px; line-height: 1.45; }
+    .notice { margin-top: 8px; color: #f4dfb4; font-size: 13px; }
+
+    .current-layout { display: grid; grid-template-columns: 1fr 1.8fr; gap: 16px; align-items: stretch; }
+    .current-primary {
+      display: flex;
+      min-height: 128px;
+      flex-direction: column;
+      justify-content: center;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface-soft);
+    }
+    .current-temperature { font-size: clamp(42px, 6vw, 64px); font-weight: 760; line-height: 1; letter-spacing: -.05em; }
+    .current-feels { margin-top: 8px; color: var(--muted); font-size: 13px; }
+    .metric-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .metric {
+      min-width: 0;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface-soft);
+    }
+    .metric-label {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .075em;
+      line-height: 1.25;
+      text-transform: uppercase;
+    }
+    .metric strong { display: block; overflow: hidden; font-size: 18px; font-weight: 680; text-overflow: ellipsis; white-space: nowrap; }
+    .insight {
+      margin-top: 12px;
+      padding: 11px 13px;
+      border-left: 3px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      background: #0d1927;
+      color: #c3d1df;
+    }
+
+    .astro-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .astro-panel { padding: 15px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-soft); }
+    .astro-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+    .astro-heading strong { font-size: 16px; }
+    .astro-symbol { color: var(--accent); font-size: 23px; line-height: 1; }
+    .time-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .time-value { display: block; font-size: 24px; font-weight: 710; letter-spacing: -.025em; }
+    .daylight-track { height: 5px; margin: 15px 0 9px; overflow: hidden; border-radius: 999px; background: #233244; }
+    .daylight-track > span { display: block; width: 0; height: 100%; border-radius: inherit; background: #e5b956; transition: width .4s ease; }
+    .astro-status { min-height: 3em; margin-top: 10px; }
+    .moon-phase { margin: 2px 0 12px; font-size: 15px; font-weight: 650; line-height: 1.35; }
+
+    .aq-layout { display: grid; grid-template-columns: minmax(165px, .8fr) 2fr; gap: 12px; }
+    .aq-overview {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface-soft);
+    }
+    .aq-index { display: block; margin: 4px 0 8px; font-size: 50px; font-weight: 760; letter-spacing: -.05em; line-height: 1; }
+    .badge, .level {
+      display: inline-block;
+      padding: 4px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 650;
+    }
+    .aq-advice { margin: 12px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .b-good, .level.green { color: #c9f4da; background: #0d271c; border-color: #245d3d; }
+    .b-fair, .level.yellow { color: #f4dfb4; background: #2a230f; border-color: #715b24; }
+    .b-mod, .level.orange { color: #f3cfac; background: #2b1b0d; border-color: #845026; }
+    .b-poor, .level.red { color: #f4c4c4; background: #2b1215; border-color: #7a3038; }
+    .pollutant-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .pollutant-grid .metric strong { font-size: 16px; }
+    .pollen-heading { margin: 14px 0 8px; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+    .pollen-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
+    .pollen-item {
+      padding: 9px 10px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: var(--surface-soft);
+    }
+    .pollen-item strong { display: block; margin-top: 3px; font-size: 15px; }
+
     .chart { width: 100%; height: 240px; }
     .legend { margin-top: 6px; }
     .btn {
       padding: 9px 14px;
-      border: 1px solid var(--line);
-      border-radius: 999px;
+      border: 1px solid var(--line-strong);
+      border-radius: 9px;
       color: var(--ink);
-      background: #0f1731;
+      background: #112034;
       cursor: pointer;
     }
-    .btn:hover { filter: brightness(1.1); }
-    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-    .chip, .badge, .level {
-      display: inline-block;
-      padding: 4px 10px;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      font-size: 13px;
-    }
-    .b-good, .level.green { color: #c9ffe0; background: #0f2818; border-color: #1b5e33; }
-    .b-fair, .level.yellow { color: #ffe7b5; background: #2e2609; border-color: #7a5c12; }
-    .b-mod, .level.orange { color: #ffd6b3; background: #2e1b08; border-color: #9c5416; }
-    .b-poor, .level.red { color: #ffd0d0; background: #2d0d0d; border-color: #8a1f1f; }
-    .days { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; padding: 6px 6px 10px; }
-    .day { min-width: 140px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: #0f1731; text-align: center; }
-    .day .weather-icon { margin: 2px 0; font-size: 28px; }
-    .day .temperature { font-size: 16px; }
+    .btn:hover { border-color: var(--accent); background: #15283e; }
+    .days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; padding-top: 4px; }
+    .day { min-width: 0; padding: 12px 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-soft); text-align: center; }
+    .day .weather-icon { margin: 5px 0; font-size: 26px; }
+    .day .temperature { margin: 3px 0; font-size: 16px; font-weight: 670; }
     .radar-wrap { display: flex; flex-direction: column; gap: 10px; }
-    iframe.radar { width: 100%; height: 420px; border: 1px solid var(--line); border-radius: 14px; background: #0b0f1a; }
+    iframe.radar { width: 100%; height: 420px; border: 1px solid var(--line); border-radius: 10px; background: #07101a; }
     .alerts-list { margin: 6px 0 0 16px; padding: 0; }
     .alerts-list li { margin-bottom: 8px; }
     details.card > summary {
@@ -163,33 +242,59 @@
       margin: 0;
       cursor: pointer;
       list-style: none;
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 700;
     }
     details.card > summary::-webkit-details-marker { display: none; }
-    details.card > summary::after { content: "＋"; color: var(--muted); font-weight: 400; }
-    details.card[open] > summary { margin-bottom: 10px; }
+    details.card > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; border-radius: 4px; }
+    details.card > summary::after { content: "+"; color: var(--muted); font-size: 22px; font-weight: 400; }
+    details.card[open] > summary { margin-bottom: 14px; }
     details.card[open] > summary::after { content: "−"; }
-    footer { margin: 22px 0 8px; color: #9fb0ff8c; font-size: 12px; line-height: 1.6; text-align: center; }
+    #alertsPanel[hidden] + details { grid-column: 1 / -1; }
+    footer { margin: 26px 0 8px; color: #8093a8; font-size: 12px; line-height: 1.65; text-align: center; }
 
-    @media (max-width: 600px) {
+    @media (max-width: 960px) {
+      .hero { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .hero .nowcast-card { grid-column: 1 / -1; grid-row: 1; min-height: 0; }
+      .current-layout, .aq-layout { grid-template-columns: 1fr; }
+      .days { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 680px) {
       .wrap { padding: 14px; }
+      .topbar { position: static; padding-top: 0; background: none; }
+      .bar-row { align-items: flex-start; flex-direction: column; margin-bottom: 16px; }
+      .banner { width: 100%; max-height: 58px; justify-content: flex-start; }
+      #asof { padding-left: 3px; }
+      header { align-items: flex-start; margin-top: 14px; }
+      .header-actions { max-width: 150px; }
+      h1 { font-size: 27px; }
       .hero, .row { grid-template-columns: minmax(0, 1fr); }
-      .card { padding: 14px; }
-      .chart { height: 200px; }
-      .banner { max-height: 56px; }
-      .answer-row { align-items: stretch; flex-direction: column; }
-      .answer { min-width: 0; }
-      .bar-row { align-items: flex-start; flex-direction: column; }
-      #asof { padding-left: 4px; }
-      header { align-items: flex-start; }
-      .header-actions { max-width: 140px; }
-      details.card:not([open]) { padding-bottom: 14px; }
+      .hero .nowcast-card { grid-column: auto; grid-row: auto; }
+      .hero .card { min-height: 0; }
+      .card { padding: 16px; }
+      .answer-row { grid-template-columns: 118px 1fr; }
+      .nowcast-value { margin-top: 12px; }
+      .astro-grid { grid-template-columns: 1fr; }
+      .pollen-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .days { display: flex; margin-inline: -4px; overflow-x: auto; scroll-snap-type: x proximity; }
+      .day { min-width: 124px; scroll-snap-align: start; }
+      .chart { height: 205px; }
+      details.card:not([open]) { padding-bottom: 16px; }
+    }
+
+    @media (max-width: 420px) {
+      header { display: block; }
+      .header-actions { max-width: none; margin-top: 14px; justify-content: flex-start; }
+      .answer-row { grid-template-columns: 1fr; }
+      .answer { max-width: none; }
+      .current-layout { gap: 10px; }
+      .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .metric strong { font-size: 16px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
-      body { animation: none; }
-      .card { transition: none; }
+      .card, .daylight-track > span { transition: none; }
     }
   </style>
 </head>
@@ -221,7 +326,7 @@
     <main>
       <section class="hero">
         <article class="card">
-          <h2 data-i18n="rainTodayTitle">🌧️ Will it rain today in Přerov?</h2>
+          <h2 data-i18n="rainTodayTitle">Will it rain today in Přerov?</h2>
           <div class="answer-row">
             <div id="rainToday" class="answer pending" data-i18n="pending">PENDING</div>
             <div id="highlightsToday" class="sub" data-i18n="waitingSnapshot">Waiting for the shared snapshot.</div>
@@ -231,13 +336,13 @@
         </article>
 
         <article id="nowcastCard" class="card nowcast-card">
-          <h2 data-i18n="nextRainTitle">☔ Next rain</h2>
+          <h2 data-i18n="nextRainTitle">Next rain</h2>
           <div id="nextRain" class="nowcast-value" aria-live="polite" data-i18n="checkingNowcast">Checking the next hour…</div>
           <div id="nextRainDetail" class="sub" data-i18n="nowcastLiveNote">Live 15-minute forecast; this does not change the locked daily answer.</div>
         </article>
 
         <article class="card">
-          <h2 data-i18n="rainTomorrowTitle">🌧️ Will it rain tomorrow?</h2>
+          <h2 data-i18n="rainTomorrowTitle">Will it rain tomorrow?</h2>
           <div class="answer-row">
             <div id="rainTomorrow" class="answer pending" data-i18n="pending">PENDING</div>
             <div id="highlightsTomorrow" class="sub" data-i18n="waitingSnapshot">Waiting for the shared snapshot.</div>
@@ -246,48 +351,143 @@
         </article>
       </section>
 
-      <section class="row" style="margin-top:14px">
+      <section class="row section-gap">
+        <article class="card">
+          <h2 data-i18n="currentTitle">Current conditions</h2>
+          <div class="current-layout">
+            <div class="current-primary">
+              <span class="metric-label" data-i18n="temperatureLabel">Temperature</span>
+              <strong id="currentTemp" class="current-temperature">—</strong>
+              <span id="currentFeels" class="current-feels">—</span>
+            </div>
+            <div class="metric-grid">
+              <div class="metric">
+                <span class="metric-label" data-i18n="windLabel">Wind</span>
+                <strong id="currentWind">—</strong>
+              </div>
+              <div class="metric">
+                <span class="metric-label" data-i18n="cloudsLabel">Clouds</span>
+                <strong id="currentClouds">—</strong>
+              </div>
+              <div class="metric">
+                <span class="metric-label" data-i18n="pressureLabel">Pressure</span>
+                <strong id="currentPressure">—</strong>
+              </div>
+              <div class="metric">
+                <span class="metric-label" data-i18n="humidityLabel">Humidity</span>
+                <strong id="currentHumidity">—</strong>
+              </div>
+              <div class="metric">
+                <span class="metric-label" data-i18n="uvNowLabel">UV now</span>
+                <strong id="currentUv">—</strong>
+              </div>
+              <div class="metric">
+                <span class="metric-label" data-i18n="uvMaxLabel">UV max</span>
+                <strong id="currentUvMax">—</strong>
+              </div>
+            </div>
+          </div>
+          <div id="pressureTrend" class="sub tiny" style="margin-top:10px"></div>
+          <div id="dailyTip" class="sub insight" data-i18n="tipInitial">Tip: —</div>
+        </article>
+        <details class="card" data-mobile-collapse open id="astroCard">
+          <summary data-i18n="sunMoonTitle">Sun &amp; Moon</summary>
+          <div class="astro-grid">
+            <section class="astro-panel">
+              <div class="astro-heading">
+                <strong data-i18n="sunLabel">Sun</strong>
+                <span class="astro-symbol" aria-hidden="true">☀</span>
+              </div>
+              <div class="time-pair">
+                <div>
+                  <span class="metric-label" data-i18n="sunriseLabel">Sunrise</span>
+                  <strong id="sunriseTime" class="time-value">—</strong>
+                </div>
+                <div>
+                  <span class="metric-label" data-i18n="sunsetLabel">Sunset</span>
+                  <strong id="sunsetTime" class="time-value">—</strong>
+                </div>
+              </div>
+              <div class="daylight-track" aria-hidden="true"><span id="daylightProgress"></span></div>
+              <div id="sunStatus" class="sub astro-status" data-i18n="sunUnavailable">Sun data unavailable for the current Prague date.</div>
+            </section>
+            <section class="astro-panel">
+              <div class="astro-heading">
+                <strong data-i18n="moonLabel">Moon</strong>
+                <span id="moonGlyph" class="astro-symbol" aria-hidden="true">◐</span>
+              </div>
+              <div id="moonPhase" class="moon-phase" data-i18n="moonLoading">Moon: loading dependency…</div>
+              <div class="time-pair">
+                <div>
+                  <span class="metric-label" data-i18n="moonriseLabel">Moonrise</span>
+                  <strong id="moonriseTime" class="time-value">—</strong>
+                </div>
+                <div>
+                  <span class="metric-label" data-i18n="moonsetLabel">Moonset</span>
+                  <strong id="moonsetTime" class="time-value">—</strong>
+                </div>
+              </div>
+              <div id="moonStatus" class="sub astro-status"></div>
+            </section>
+          </div>
+        </details>
+      </section>
+
+      <section class="row section-gap">
         <details class="card" data-mobile-collapse open>
-          <summary data-i18n="rainChartTitle">📈 Hourly precipitation (next 24h)</summary>
+          <summary data-i18n="rainChartTitle">Hourly precipitation (next 24h)</summary>
           <canvas id="rainChart" class="chart" aria-label="Live hourly precipitation amount and probability chart"></canvas>
           <div id="rainChartSummary" class="sub legend" data-i18n="rainChartInitial">Latest forecast details. Blue bars: total precipitation. Yellow line: probability.</div>
         </details>
         <details class="card" data-mobile-collapse open>
-          <summary data-i18n="tempChartTitle">🌡️ Hourly temperature &amp; wind (next 24h)</summary>
+          <summary data-i18n="tempChartTitle">Hourly temperature &amp; wind (next 24h)</summary>
           <canvas id="tempWindChart" class="chart" aria-label="Live hourly temperature and wind chart"></canvas>
           <div id="tempChartSummary" class="sub legend" data-i18n="tempChartInitial">Latest forecast details. Yellow line: temperature. Bars: wind speed.</div>
         </details>
       </section>
 
-      <section class="row" style="margin-top:14px">
-        <article class="card">
-          <h2 data-i18n="currentTitle">🧭 Current conditions</h2>
-          <div id="nowLine" class="sub">—</div>
-          <div id="uvChips" class="chips"></div>
-          <div id="dailyTip" class="sub" style="margin-top:10px" data-i18n="tipInitial">Tip: —</div>
-        </article>
-        <details class="card" data-mobile-collapse open>
-          <summary data-i18n="sunMoonTitle">☀️ Sun &amp; Moon</summary>
-          <div id="sunLine" class="sub">Sun: —</div>
-          <div id="moonLine" class="sub" data-i18n="moonLoading">Moon: loading dependency…</div>
-        </details>
-      </section>
-
-      <details class="card" data-mobile-collapse open style="margin-top:14px">
-        <summary data-i18n="sevenDayTitle">📅 Seven-day forecast</summary>
+      <details class="card section-gap" data-mobile-collapse open>
+        <summary data-i18n="sevenDayTitle">Seven-day forecast</summary>
         <div id="daysStrip" class="days" aria-live="polite"></div>
       </details>
 
-      <section class="row" style="margin-top:14px">
+      <section class="row section-gap">
         <details class="card" data-mobile-collapse open>
-          <summary data-i18n="airQualityTitle">🌫️ Air quality (now) + pollen</summary>
-          <div id="aqBadge" class="badge">—</div>
-          <div id="aqLine" class="sub">—</div>
-          <div id="pollenLine" class="sub">—</div>
-          <div id="aqStatus" class="sub tiny" data-i18n="airQualityLoading">Loading latest air-quality data…</div>
+          <summary data-i18n="airQualityTitle">Air quality &amp; pollen</summary>
+          <div class="aq-layout">
+            <div class="aq-overview">
+              <span class="metric-label" data-i18n="europeanAqiLabel">European AQI</span>
+              <strong id="aqValue" class="aq-index">—</strong>
+              <span id="aqBadge" class="badge">—</span>
+              <p id="aqAdvice" class="aq-advice" data-i18n="airQualityLoading">Loading latest air-quality data…</p>
+            </div>
+            <div>
+              <div class="pollutant-grid">
+                <div class="metric">
+                  <span class="metric-label">PM₂.₅</span>
+                  <strong id="pm25Value">—</strong>
+                </div>
+                <div class="metric">
+                  <span class="metric-label">PM₁₀</span>
+                  <strong id="pm10Value">—</strong>
+                </div>
+                <div class="metric">
+                  <span class="metric-label">O₃</span>
+                  <strong id="ozoneValue">—</strong>
+                </div>
+                <div class="metric">
+                  <span class="metric-label">NO₂</span>
+                  <strong id="no2Value">—</strong>
+                </div>
+              </div>
+              <div class="pollen-heading" data-i18n="pollenHeading">Pollen · grains/m³</div>
+              <div id="pollenGrid" class="pollen-grid"></div>
+              <div id="aqStatus" class="sub tiny" style="margin-top:10px" data-i18n="airQualityLoading">Loading latest air-quality data…</div>
+            </div>
+          </div>
         </details>
         <details class="card" data-mobile-collapse open>
-          <summary data-i18n="radarTitle">🛰️ Radar</summary>
+          <summary data-i18n="radarTitle">Radar</summary>
           <div class="radar-wrap">
             <button id="radarToggle" class="btn" type="button" data-i18n="showRadar">Show live radar</button>
             <div id="radarSlot"></div>
@@ -296,15 +496,15 @@
         </details>
       </section>
 
-      <section class="row" style="margin-top:14px">
+      <section class="row section-gap">
         <article class="card" id="alertsPanel" hidden>
-          <h2 data-i18n="alertsTitle">⚠️ Severe weather details</h2>
+          <h2 data-i18n="alertsTitle">Severe weather details</h2>
           <div id="alertsSummary" class="sub">—</div>
           <ul id="alertsList" class="sub alerts-list"></ul>
           <div class="sub"><span data-i18n="regionalFeedBefore">Regional feed: Olomouc Region. </span><a href="https://www.meteoalarm.org/en/live/" target="_blank" rel="noopener" data-i18n="openMeteoalarm">Open Meteoalarm map</a><span data-i18n="regionalFeedAfter">.</span></div>
         </article>
         <details class="card" data-mobile-collapse open>
-          <summary data-i18n="sourcesTitle">🧭 Sources</summary>
+          <summary data-i18n="sourcesTitle">Sources</summary>
           <ul class="sub">
             <li><a href="https://open-meteo.com/en/docs" target="_blank" rel="noopener" data-i18n="sourceForecast">Open-Meteo weather forecast API</a></li>
             <li><a href="https://open-meteo.com/en/docs/air-quality-api" target="_blank" rel="noopener" data-i18n="sourceAir">Open-Meteo air quality and pollen API</a></li>

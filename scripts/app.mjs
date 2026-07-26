@@ -2,6 +2,7 @@ import {
   CITY,
   addDateKey,
   alertPresentation,
+  apiTimestampToPragueInstant,
   buildWetPeriods,
   formatPragueDay,
   formatPragueTime,
@@ -21,9 +22,9 @@ import {
 import { createTranslator, resolveLanguage } from "./i18n.mjs";
 import { waitForSunCalc } from "./suncalc-loader.mjs";
 
-const APP_VERSION = "2.1.0";
+const APP_VERSION = "2.2.0";
 const LANGUAGE_STORAGE_KEY = "prerov-weather-language-v1";
-const LIVE_CACHE_KEY = "prerov-weather-live-v3";
+const LIVE_CACHE_KEY = "prerov-weather-live-v4";
 const SNAPSHOT_CACHE_KEY = "prerov-weather-snapshot-v1";
 const LIVE_CACHE_MAX_AGE = 6 * 60 * 60 * 1000;
 const PROXY_BASE = "https://weatherwebsiteprerov.matejkratochvilbilina.workers.dev";
@@ -257,7 +258,9 @@ function airQualityUrl() {
     timezone: CITY.timezone,
     hourly: [
       "pm2_5",
+      "pm10",
       "ozone",
+      "nitrogen_dioxide",
       "european_aqi",
       "alder_pollen",
       "birch_pollen",
@@ -266,7 +269,9 @@ function airQualityUrl() {
     ].join(","),
     current: [
       "pm2_5",
+      "pm10",
       "ozone",
+      "nitrogen_dioxide",
       "european_aqi",
       "alder_pollen",
       "birch_pollen",
@@ -370,14 +375,57 @@ function moonPhaseName(phase) {
   return t("moonWaningCrescent");
 }
 
+function moonPhaseGlyph(phase) {
+  if (phase < 0.03 || phase > 0.97) return "●";
+  if (phase < 0.22) return "◔";
+  if (phase < 0.28) return "◐";
+  if (phase < 0.47) return "◕";
+  if (phase < 0.53) return "○";
+  if (phase < 0.72) return "◕";
+  if (phase < 0.78) return "◑";
+  return "◔";
+}
+
 function airQualityClass(value) {
-  if (!Number.isFinite(value)) return { name: "—", className: "" };
-  if (value > 100) return { name: t("aqiExtremelyPoor"), className: "b-poor" };
-  if (value > 80) return { name: t("aqiVeryPoor"), className: "b-poor" };
-  if (value > 60) return { name: t("aqiPoor"), className: "b-poor" };
-  if (value > 40) return { name: t("aqiModerate"), className: "b-mod" };
-  if (value > 20) return { name: t("aqiFair"), className: "b-fair" };
-  return { name: t("aqiGood"), className: "b-good" };
+  if (!Number.isFinite(value)) {
+    return { name: "—", className: "", advice: t("aqiAdviceUnavailable") };
+  }
+  if (value > 100) {
+    return { name: t("aqiExtremelyPoor"), className: "b-poor", advice: t("aqiAdviceExtremelyPoor") };
+  }
+  if (value > 80) {
+    return { name: t("aqiVeryPoor"), className: "b-poor", advice: t("aqiAdviceVeryPoor") };
+  }
+  if (value > 60) {
+    return { name: t("aqiPoor"), className: "b-poor", advice: t("aqiAdvicePoor") };
+  }
+  if (value > 40) {
+    return { name: t("aqiModerate"), className: "b-mod", advice: t("aqiAdviceModerate") };
+  }
+  if (value > 20) {
+    return { name: t("aqiFair"), className: "b-fair", advice: t("aqiAdviceFair") };
+  }
+  return { name: t("aqiGood"), className: "b-good", advice: t("aqiAdviceGood") };
+}
+
+function formattedNumber(value, maximumFractionDigits = 0) {
+  return Number.isFinite(value)
+    ? new Intl.NumberFormat(locale, { maximumFractionDigits }).format(value)
+    : "—";
+}
+
+function durationParts(milliseconds) {
+  const totalMinutes = Math.max(0, Math.round(milliseconds / 60_000));
+  return {
+    hours: Math.floor(totalMinutes / 60),
+    minutes: totalMinutes % 60,
+  };
+}
+
+function durationText(milliseconds) {
+  const { hours, minutes } = durationParts(milliseconds);
+  if (hours === 0) return t("durationMinutes", { minutes });
+  return t("durationHoursMinutes", { hours, minutes });
 }
 
 function drawAnimated(drawFrame, duration = 650) {
@@ -547,34 +595,30 @@ function renderCurrentConditions(forecast, records, nowIndex) {
   const pressure = Number.isFinite(current.pressure_msl) ? current.pressure_msl : fallback.pressure_msl;
   const apparent = Number.isFinite(current.apparent_temperature)
     ? current.apparent_temperature : fallback.apparent_temperature;
+  const humidity = Number.isFinite(current.relative_humidity_2m)
+    ? current.relative_humidity_2m : fallback.relative_humidity_2m;
+  const uvNow = Number.isFinite(current.uv_index) ? current.uv_index : fallback.uv_index;
+  const uvMax = forecast.daily?.uv_index_max?.[0];
 
-  $("nowLine").textContent = t("nowConditions", {
-    temperature: Number.isFinite(temperature) ? `${Math.round(temperature)}°C` : "—",
-    apparent: Number.isFinite(apparent) ? `${Math.round(apparent)}°C` : "—",
-    wind: Number.isFinite(wind) ? `${Math.round(wind)} km/h` : "—",
-    clouds: Number.isFinite(cloud) ? `${Math.round(cloud)}%` : "—",
-    pressure: Number.isFinite(pressure) ? `${Math.round(pressure)} hPa` : "—",
+  $("currentTemp").textContent = Number.isFinite(temperature) ? `${Math.round(temperature)}°` : "—";
+  $("currentFeels").textContent = t("feelsLike", {
+    value: Number.isFinite(apparent) ? `${Math.round(apparent)}°C` : "—",
   });
+  $("currentWind").textContent = Number.isFinite(wind) ? `${Math.round(wind)} km/h` : "—";
+  $("currentClouds").textContent = Number.isFinite(cloud) ? `${Math.round(cloud)}%` : "—";
+  $("currentPressure").textContent = Number.isFinite(pressure) ? `${Math.round(pressure)} hPa` : "—";
+  $("currentHumidity").textContent = Number.isFinite(humidity) ? `${Math.round(humidity)}%` : "—";
+  $("currentUv").textContent = Number.isFinite(uvNow) ? uvNow.toFixed(1) : "—";
+  $("currentUvMax").textContent = Number.isFinite(uvMax) ? uvMax.toFixed(1) : "—";
 
-  const chips = $("uvChips");
-  chips.replaceChildren();
-  const values = [
-    t("uvNow", { value: Number.isFinite(current.uv_index) ? current.uv_index.toFixed(1) : "—" }),
-    t("uvMax", { value: Number.isFinite(forecast.daily?.uv_index_max?.[0]) ? forecast.daily.uv_index_max[0].toFixed(1) : "—" }),
-  ];
   const previousPressure = records[Math.max(0, nowIndex - 3)]?.pressure_msl;
+  $("pressureTrend").textContent = "";
   if (Number.isFinite(pressure) && Number.isFinite(previousPressure)) {
     const difference = Math.round(pressure - previousPressure);
-    values.push(t("pressureTrend", {
+    $("pressureTrend").textContent = t("pressureTrend", {
       arrow: difference > 0 ? "▲" : difference < 0 ? "▼" : "→",
       value: difference,
-    }));
-  }
-  for (const value of values) {
-    const chip = document.createElement("span");
-    chip.className = "chip";
-    chip.textContent = value;
-    chips.append(chip);
+    });
   }
 }
 
@@ -693,30 +737,82 @@ function renderAirQuality(airQuality, fetchedAt) {
     );
   }
   const classification = airQualityClass(data.european_aqi);
-  $("aqBadge").textContent = `${classification.name}${Number.isFinite(data.european_aqi) ? ` (${Math.round(data.european_aqi)})` : ""}`;
+  $("aqValue").textContent = formattedNumber(data.european_aqi);
+  $("aqBadge").textContent = classification.name;
   $("aqBadge").className = `badge ${classification.className}`;
-  $("aqLine").textContent = `PM₂.₅ ${Number.isFinite(data.pm2_5) ? `${Math.round(data.pm2_5)} µg/m³` : "—"} · O₃ ${Number.isFinite(data.ozone) ? `${Math.round(data.ozone)} µg/m³` : "—"}`;
+  $("aqAdvice").textContent = classification.advice;
+  $("pm25Value").textContent = Number.isFinite(data.pm2_5)
+    ? `${formattedNumber(data.pm2_5, 1)} µg/m³` : "—";
+  $("pm10Value").textContent = Number.isFinite(data.pm10)
+    ? `${formattedNumber(data.pm10, 1)} µg/m³` : "—";
+  $("ozoneValue").textContent = Number.isFinite(data.ozone)
+    ? `${formattedNumber(data.ozone, 1)} µg/m³` : "—";
+  $("no2Value").textContent = Number.isFinite(data.nitrogen_dioxide)
+    ? `${formattedNumber(data.nitrogen_dioxide, 1)} µg/m³` : "—";
+
   const pollen = [
     [t("pollenAlder"), data.alder_pollen],
     [t("pollenBirch"), data.birch_pollen],
     [t("pollenGrass"), data.grass_pollen],
     [t("pollenRagweed"), data.ragweed_pollen],
-  ].filter(([, value]) => Number.isFinite(value))
-    .map(([name, value]) => `${name} ${Math.round(value)}`);
-  $("pollenLine").textContent = pollen.length ? pollen.join(" · ") : t("pollenUnavailable");
+  ];
+  const pollenGrid = $("pollenGrid");
+  pollenGrid.replaceChildren();
+  for (const [name, value] of pollen) {
+    const item = document.createElement("div");
+    item.className = "pollen-item";
+    const label = document.createElement("span");
+    label.className = "sub tiny";
+    label.textContent = name;
+    const amount = document.createElement("strong");
+    amount.textContent = Number.isFinite(value) ? formattedNumber(value, 1) : "—";
+    item.append(label, amount);
+    pollenGrid.append(item);
+  }
   $("aqStatus").textContent = t("airFetched", { time: formatFetchedTime(fetchedAt) });
 }
 
 async function renderSunAndMoon(forecast, sunCalcPromise) {
   const dateKey = getPragueDateKey(new Date());
   const dailyIndex = forecast.daily?.time?.indexOf(dateKey) ?? -1;
+  const now = new Date();
   if (dailyIndex >= 0) {
-    $("sunLine").textContent = t("sunriseSunset", {
-      sunrise: formatPragueTime(forecast.daily.sunrise?.[dailyIndex], locale),
-      sunset: formatPragueTime(forecast.daily.sunset?.[dailyIndex], locale),
-    });
+    const sunriseValue = forecast.daily.sunrise?.[dailyIndex];
+    const sunsetValue = forecast.daily.sunset?.[dailyIndex];
+    $("sunriseTime").textContent = formatPragueTime(sunriseValue, locale);
+    $("sunsetTime").textContent = formatPragueTime(sunsetValue, locale);
+
+    try {
+      const sunrise = apiTimestampToPragueInstant(sunriseValue);
+      const sunset = apiTimestampToPragueInstant(sunsetValue);
+      const daylightMs = sunset.getTime() - sunrise.getTime();
+      const progress = Math.max(0, Math.min(1, (now.getTime() - sunrise.getTime()) / daylightMs));
+      $("daylightProgress").style.width = `${Math.round(progress * 100)}%`;
+      const daylight = durationText(daylightMs);
+      if (now < sunrise) {
+        $("sunStatus").textContent = t("sunriseIn", {
+          duration: durationText(sunrise.getTime() - now.getTime()),
+          daylight,
+        });
+      } else if (now < sunset) {
+        $("sunStatus").textContent = t("sunsetIn", {
+          duration: durationText(sunset.getTime() - now.getTime()),
+          daylight,
+        });
+      } else {
+        $("sunStatus").textContent = t("sunBelowHorizon", { daylight });
+      }
+    } catch {
+      $("sunStatus").textContent = t("sunriseSunset", {
+        sunrise: formatPragueTime(sunriseValue, locale),
+        sunset: formatPragueTime(sunsetValue, locale),
+      });
+    }
   } else {
-    $("sunLine").textContent = t("sunUnavailable");
+    $("sunriseTime").textContent = "—";
+    $("sunsetTime").textContent = "—";
+    $("daylightProgress").style.width = "0";
+    $("sunStatus").textContent = t("sunUnavailable");
   }
 
   try {
@@ -724,15 +820,19 @@ async function renderSunAndMoon(forecast, sunCalcPromise) {
     const date = pragueLocalDateToInstant(dateKey, 12, 0);
     const moonTimes = SunCalc.getMoonTimes(date, CITY.latitude, CITY.longitude);
     const illumination = SunCalc.getMoonIllumination(date);
-    let text = t("moonDetails", {
+    $("moonGlyph").textContent = moonPhaseGlyph(illumination.phase);
+    $("moonPhase").textContent = t("moonDetails", {
       phase: moonPhaseName(illumination.phase),
       fraction: Math.round(illumination.fraction * 100),
     });
-    if (moonTimes.rise) text += t("moonRise", { time: formatPragueTime(moonTimes.rise, locale) });
-    if (moonTimes.set) text += t("moonSet", { time: formatPragueTime(moonTimes.set, locale) });
-    $("moonLine").textContent = text;
+    $("moonriseTime").textContent = moonTimes.rise ? formatPragueTime(moonTimes.rise, locale) : "—";
+    $("moonsetTime").textContent = moonTimes.set ? formatPragueTime(moonTimes.set, locale) : "—";
+    $("moonStatus").textContent = t("moonTimesLocal");
   } catch {
-    $("moonLine").textContent = t("moonUnavailable");
+    $("moonPhase").textContent = t("moonUnavailable");
+    $("moonriseTime").textContent = "—";
+    $("moonsetTime").textContent = "—";
+    $("moonStatus").textContent = "";
   }
 }
 

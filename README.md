@@ -4,6 +4,14 @@ A mobile-first, unofficial weather dashboard for Přerov, Czechia. The main ques
 
 Live site: [matesaman9910.github.io/Weather-Prerov-Unofficial](https://matesaman9910.github.io/Weather-Prerov-Unofficial/)
 
+## Version 2.2
+
+- Moves current conditions and Sun/Moon timing directly below the rain-first answer.
+- Reworks current conditions into labeled, glanceable temperature, wind, cloud, pressure, humidity, and UV values.
+- Adds daylight duration and time-to-sunrise/sunset, plus clearly separated Moon phase, illumination, moonrise, and moonset.
+- Expands air quality with European AQI guidance, PM₂.₅, PM₁₀, ozone, nitrogen dioxide, and readable pollen values.
+- Simplifies the visual language with quieter surfaces, restrained colour, fewer decorative icons, and better mobile hierarchy.
+
 ## Version 2.1
 
 - Adds a separate live “next rain” card based on Open-Meteo’s 15-minute precipitation forecast for Central Europe.
