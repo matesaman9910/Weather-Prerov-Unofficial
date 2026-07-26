@@ -88,6 +88,8 @@
     .section-gap { margin-top: 16px; }
     .hero { display: grid; gap: 14px; grid-template-columns: 1fr 1.06fr 1fr; }
     .row { display: grid; align-items: start; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .row.balanced-row { align-items: stretch; }
+    .balanced-row > .card { height: 100%; }
     .card {
       min-width: 0;
       padding: 20px;
@@ -174,8 +176,9 @@
       color: #c3d1df;
     }
 
-    .astro-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-    .astro-panel { padding: 15px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-soft); }
+    .astro-card[open], .aq-card[open] { display: grid; grid-template-rows: auto 1fr; }
+    .astro-grid { display: grid; height: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .astro-panel { display: flex; padding: 15px; flex-direction: column; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-soft); }
     .astro-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
     .astro-heading strong { font-size: 16px; }
     .astro-symbol { color: var(--accent); font-size: 23px; line-height: 1; }
@@ -183,10 +186,10 @@
     .time-value { display: block; font-size: 24px; font-weight: 710; letter-spacing: -.025em; }
     .daylight-track { height: 5px; margin: 15px 0 9px; overflow: hidden; border-radius: 999px; background: #233244; }
     .daylight-track > span { display: block; width: 0; height: 100%; border-radius: inherit; background: #e5b956; transition: width .4s ease; }
-    .astro-status { min-height: 3em; margin-top: 10px; }
+    .astro-status { min-height: 3em; margin-top: auto; padding-top: 14px; }
     .moon-phase { margin: 2px 0 12px; font-size: 15px; font-weight: 650; line-height: 1.35; }
 
-    .aq-layout { display: grid; grid-template-columns: minmax(165px, .8fr) 2fr; gap: 12px; }
+    .aq-layout { display: grid; height: 100%; grid-template-columns: minmax(165px, .8fr) 2fr; gap: 12px; }
     .aq-overview {
       padding: 16px;
       border: 1px solid var(--line);
@@ -203,6 +206,8 @@
       font-weight: 650;
     }
     .aq-advice { margin: 12px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .aq-details { display: flex; min-width: 0; flex-direction: column; }
+    #aqStatus { margin-top: auto; padding-top: 10px; }
     .b-good, .level.green { color: #c9f4da; background: #0d271c; border-color: #245d3d; }
     .b-fair, .level.yellow { color: #f4dfb4; background: #2a230f; border-color: #715b24; }
     .b-mod, .level.orange { color: #f3cfac; background: #2b1b0d; border-color: #845026; }
@@ -244,7 +249,7 @@
     .day .weather-icon { margin: 5px 0; font-size: 26px; }
     .day .temperature { margin: 3px 0; font-size: 16px; font-weight: 670; }
     .radar-wrap { display: flex; flex-direction: column; gap: 10px; }
-    iframe.radar { width: 100%; height: 420px; border: 1px solid var(--line); border-radius: 10px; background: #07101a; }
+    iframe.radar { width: 100%; height: 300px; border: 1px solid var(--line); border-radius: 10px; background: #07101a; }
     .alerts-list { margin: 6px 0 0 16px; padding: 0; }
     .alerts-list li { margin-bottom: 8px; }
     details.card > summary {
@@ -253,14 +258,14 @@
       justify-content: space-between;
       gap: 10px;
       margin: 0;
-      cursor: pointer;
+      cursor: default;
       list-style: none;
       font-size: 18px;
       font-weight: 700;
     }
     details.card > summary::-webkit-details-marker { display: none; }
     details.card > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; border-radius: 4px; }
-    details.card > summary::after { content: "+"; color: var(--muted); font-size: 22px; font-weight: 400; }
+    details.card > summary::after { content: "+"; display: none; color: var(--muted); font-size: 22px; font-weight: 400; }
     details.card[open] > summary { margin-bottom: 14px; }
     details.card[open] > summary::after { content: "−"; }
     #alertsPanel[hidden] + details { grid-column: 1 / -1; }
@@ -283,6 +288,7 @@
       .header-actions { max-width: 150px; }
       h1 { font-size: 27px; }
       .hero, .row { grid-template-columns: minmax(0, 1fr); }
+      .row.balanced-row { align-items: start; }
       .hero .nowcast-card { grid-column: auto; grid-row: auto; }
       .hero .card { min-height: 0; }
       .card { padding: 16px; }
@@ -293,7 +299,10 @@
       .days { display: flex; margin-inline: -4px; overflow-x: auto; scroll-snap-type: x proximity; }
       .day { min-width: 124px; scroll-snap-align: start; }
       .chart { height: 205px; }
+      iframe.radar { height: 420px; }
       details.card:not([open]) { padding-bottom: 16px; }
+      details.card > summary { cursor: pointer; }
+      details.card > summary::after { display: inline; }
     }
 
     @media (max-width: 420px) {
@@ -364,7 +373,7 @@
         </article>
       </section>
 
-      <section class="row section-gap">
+      <section class="row balanced-row section-gap">
         <article class="card">
           <h2 data-i18n="currentTitle">Current conditions</h2>
           <div class="current-layout">
@@ -403,7 +412,7 @@
           <div id="pressureTrend" class="sub tiny" style="margin-top:10px"></div>
           <div id="dailyTip" class="sub insight" data-i18n="tipInitial">Tip: —</div>
         </article>
-        <details class="card" data-mobile-collapse open id="astroCard">
+        <details class="card astro-card" data-mobile-collapse open id="astroCard">
           <summary data-i18n="sunMoonTitle">Sun &amp; Moon</summary>
           <div class="astro-grid">
             <section class="astro-panel">
@@ -447,7 +456,7 @@
       </section>
 
       <section class="row section-gap">
-        <details class="card" data-mobile-collapse open>
+        <details class="card chart-card" data-mobile-collapse open>
           <summary data-i18n="rainChartTitle">Hourly precipitation (next 24h)</summary>
           <div class="chart-key" aria-label="Chart legend">
             <span class="chart-key-item">
@@ -456,13 +465,13 @@
             </span>
             <span class="chart-key-item">
               <span class="chart-swatch line probability" aria-hidden="true"></span>
-              <span data-i18n="rainLegendProbability">Probability (%)</span>
+              <span data-i18n="rainLegendProbability">Precipitation probability (%)</span>
             </span>
           </div>
           <canvas id="rainChart" class="chart" aria-label="Live hourly precipitation amount and probability chart"></canvas>
           <div id="rainChartSummary" class="sub legend" data-i18n="rainChartInitial">Latest forecast details. Blue bars: total precipitation. Yellow line: probability.</div>
         </details>
-        <details class="card" data-mobile-collapse open>
+        <details class="card chart-card" data-mobile-collapse open>
           <summary data-i18n="tempChartTitle">Hourly temperature &amp; wind (next 24h)</summary>
           <div class="chart-key" aria-label="Chart legend">
             <span class="chart-key-item">
@@ -484,8 +493,8 @@
         <div id="daysStrip" class="days" aria-live="polite"></div>
       </details>
 
-      <section class="row section-gap">
-        <details class="card" data-mobile-collapse open>
+      <section class="row balanced-row section-gap">
+        <details class="card aq-card" data-mobile-collapse open>
           <summary data-i18n="airQualityTitle">Air quality &amp; pollen</summary>
           <div class="aq-layout">
             <div class="aq-overview">
@@ -494,7 +503,7 @@
               <span id="aqBadge" class="badge">—</span>
               <p id="aqAdvice" class="aq-advice" data-i18n="airQualityLoading">Loading latest air-quality data…</p>
             </div>
-            <div>
+            <div class="aq-details">
               <div class="pollutant-grid">
                 <div class="metric">
                   <span class="metric-label">PM₂.₅</span>
@@ -515,11 +524,11 @@
               </div>
               <div class="pollen-heading" data-i18n="pollenHeading">Pollen · grains/m³</div>
               <div id="pollenGrid" class="pollen-grid"></div>
-              <div id="aqStatus" class="sub tiny" style="margin-top:10px" data-i18n="airQualityLoading">Loading latest air-quality data…</div>
+              <div id="aqStatus" class="sub tiny" data-i18n="airQualityLoading">Loading latest air-quality data…</div>
             </div>
           </div>
         </details>
-        <article class="card">
+        <article class="card radar-card">
           <h2 data-i18n="radarTitle">Radar</h2>
           <div class="radar-wrap">
             <iframe id="radarFrame" class="radar" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer" title="Live Czech weather radar centered on Přerov"></iframe>
@@ -557,6 +566,6 @@
   </div>
 
   <script id="suncalcScript" src="https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.js" defer></script>
-  <script type="module" src="./scripts/app.mjs?v=2.2.1"></script>
+  <script type="module" src="./scripts/app.mjs?v=2.3.0"></script>
 </body>
 </html>

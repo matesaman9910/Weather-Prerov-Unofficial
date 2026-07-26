@@ -19,10 +19,10 @@ import {
   totalPrecipitationMm,
   validateSnapshot,
 } from "./weather-core.mjs";
-import { createTranslator, resolveLanguage } from "./i18n.mjs?v=2.2.1";
+import { createTranslator, resolveLanguage } from "./i18n.mjs?v=2.3.0";
 import { waitForSunCalc } from "./suncalc-loader.mjs";
 
-const APP_VERSION = "2.2.1";
+const APP_VERSION = "2.3.0";
 const LANGUAGE_STORAGE_KEY = "prerov-weather-language-v1";
 const LIVE_CACHE_KEY = "prerov-weather-live-v4";
 const SNAPSHOT_CACHE_KEY = "prerov-weather-snapshot-v1";
@@ -456,6 +456,52 @@ function setupCanvas(canvas) {
   };
 }
 
+const CHART_FRAME = Object.freeze({
+  left: 48,
+  right: 48,
+  top: 14,
+  bottom: 30,
+});
+
+function drawChartGrid(context, width, height, leftLabels, rightLabels) {
+  const { left, right, top, bottom } = CHART_FRAME;
+  const plotHeight = height - top - bottom;
+  const divisions = Math.max(1, leftLabels.length - 1);
+
+  context.save();
+  context.font = "11px system-ui";
+  context.textBaseline = "middle";
+  for (let index = 0; index < leftLabels.length; index += 1) {
+    const y = top + plotHeight * index / divisions;
+    context.beginPath();
+    context.moveTo(left, y);
+    context.lineTo(width - right, y);
+    context.strokeStyle = "#26384a";
+    context.lineWidth = 1;
+    context.stroke();
+
+    context.fillStyle = "#9eb0c3";
+    context.textAlign = "right";
+    context.fillText(leftLabels[index], left - 6, y);
+    context.textAlign = "left";
+    context.fillText(rightLabels[index], width - right + 6, y);
+  }
+  context.restore();
+}
+
+function drawTimeLabels(context, hours, width, height) {
+  const { left, right } = CHART_FRAME;
+  const step = (width - left - right) / hours.length;
+  context.save();
+  context.fillStyle = "#9eb0c3";
+  context.font = "11px system-ui";
+  context.textAlign = "center";
+  for (let index = 0; index < hours.length; index += 3) {
+    context.fillText(hours[index].time.slice(11, 13), left + index * step + step * 0.3, height - 8);
+  }
+  context.restore();
+}
+
 function drawRainChart(hours) {
   const canvas = $("rainChart");
   if (!canvas.clientWidth || !canvas.clientHeight) return;
@@ -471,35 +517,38 @@ function drawRainChart(hours) {
     context.fillText(t("noLiveData"), 8, 16);
     return;
   }
-  const padding = 32;
-  const barWidth = (width - padding * 2) / hours.length;
+  const { left, right, top, bottom } = CHART_FRAME;
+  const plotHeight = height - top - bottom;
+  const plotBottom = height - bottom;
+  const barWidth = (width - left - right) / hours.length;
   const millimetres = hours.map(totalPrecipitationMm);
   const probability = hours.map((hour) => Number(hour.precipitation_probability) || 0);
-  const maximum = Math.max(0.8, ...millimetres);
+  const maximum = Math.max(0.4, Math.ceil(Math.max(...millimetres) / 0.4) * 0.4);
+  const leftLabels = Array.from({ length: 5 }, (_, index) => (
+    `${formattedNumber(maximum * (1 - index / 4), 1)}`
+  ));
+  const rightLabels = Array.from({ length: 5 }, (_, index) => `${100 - index * 25}%`);
 
   drawAnimated((progress) => {
     context.clearRect(0, 0, width, height);
+    drawChartGrid(context, width, height, leftLabels, rightLabels);
     for (let index = 0; index < hours.length; index += 1) {
-      const x = padding + index * barWidth;
-      const barHeight = millimetres[index] / maximum * (height - padding * 2) * progress;
+      const x = left + index * barWidth;
+      const barHeight = millimetres[index] / maximum * plotHeight * progress;
       context.fillStyle = "#77a8ff";
-      context.fillRect(x, height - padding - barHeight, barWidth * 0.6, barHeight);
+      context.fillRect(x, plotBottom - barHeight, barWidth * 0.6, barHeight);
     }
     context.beginPath();
     probability.forEach((value, index) => {
-      const x = padding + index * barWidth + barWidth * 0.3;
-      const y = height - padding - value / 100 * (height - padding * 2) * progress;
+      const x = left + index * barWidth + barWidth * 0.3;
+      const y = plotBottom - value / 100 * plotHeight * progress;
       if (index === 0) context.moveTo(x, y);
       else context.lineTo(x, y);
     });
     context.strokeStyle = "#f5d061";
-    context.lineWidth = 2;
+    context.lineWidth = 2.5;
     context.stroke();
-    context.fillStyle = "#9fb0ff";
-    context.font = "13px system-ui";
-    for (let index = 0; index < hours.length; index += 3) {
-      context.fillText(hours[index].time.slice(11, 13), padding + index * barWidth - 4, height - 8);
-    }
+    drawTimeLabels(context, hours, width, height);
   });
 
   const wetHours = hours.filter((hour) => totalPrecipitationMm(hour) >= 0.2).length;
@@ -524,40 +573,46 @@ function drawTemperatureWindChart(hours) {
     context.fillText("No live data", 8, 16);
     return;
   }
-  const padding = 32;
-  const step = (width - padding * 2) / hours.length;
+  const { left, right, top, bottom } = CHART_FRAME;
+  const plotHeight = height - top - bottom;
+  const plotBottom = height - bottom;
+  const step = (width - left - right) / hours.length;
   const temperatures = hours.map((hour) => Number(hour.temperature_2m) || 0);
   const winds = hours.map((hour) => Number(hour.wind_speed_10m) || 0);
-  const minimumTemperature = Math.min(...temperatures) - 1;
-  const maximumTemperature = Math.max(...temperatures) + 1;
-  const maximumWind = Math.max(20, ...winds);
-  const temperatureY = (value) => height - padding
-    - (value - minimumTemperature) / (maximumTemperature - minimumTemperature) * (height - padding * 2);
-  const windY = (value) => height - padding - value / maximumWind * (height - padding * 2);
+  const minimumTemperature = Math.floor((Math.min(...temperatures) - 1) / 4) * 4;
+  const maximumTemperature = Math.ceil((Math.max(...temperatures) + 1) / 4) * 4;
+  const maximumWind = Math.max(20, Math.ceil(Math.max(...winds) / 5) * 5);
+  const temperatureY = (value) => plotBottom
+    - (value - minimumTemperature) / (maximumTemperature - minimumTemperature) * plotHeight;
+  const windY = (value) => plotBottom - value / maximumWind * plotHeight;
+  const leftLabels = Array.from({ length: 5 }, (_, index) => (
+    `${Math.round(maximumTemperature - (maximumTemperature - minimumTemperature) * index / 4)}°`
+  ));
+  const rightLabels = Array.from({ length: 5 }, (_, index) => (
+    `${Math.round(maximumWind * (1 - index / 4))}`
+  ));
 
   drawAnimated((progress) => {
     context.clearRect(0, 0, width, height);
+    drawChartGrid(context, width, height, leftLabels, rightLabels);
     context.fillStyle = "#7185bb";
     winds.forEach((wind, index) => {
-      const x = padding + index * step;
+      const x = left + index * step;
       const y = windY(wind * progress);
       context.fillRect(x, y, step * 0.6, windY(0) - y);
     });
     context.beginPath();
     temperatures.forEach((temperature, index) => {
-      const x = padding + index * step + step * 0.3;
-      const y = temperatureY(temperature);
+      const x = left + index * step + step * 0.3;
+      const finalY = temperatureY(temperature);
+      const y = plotBottom - (plotBottom - finalY) * progress;
       if (index === 0) context.moveTo(x, y);
       else context.lineTo(x, y);
     });
     context.strokeStyle = "#ffd166";
-    context.lineWidth = 2;
+    context.lineWidth = 2.5;
     context.stroke();
-    context.fillStyle = "#9fb0ff";
-    context.font = "13px system-ui";
-    for (let index = 0; index < hours.length; index += 3) {
-      context.fillText(hours[index].time.slice(11, 13), padding + index * step - 4, height - 8);
-    }
+    drawTimeLabels(context, hours, width, height);
   });
 
   const low = Math.round(Math.min(...temperatures));
@@ -984,19 +1039,33 @@ async function loadAlerts() {
 }
 
 function setupInteractions() {
-  const mobileQuery = window.matchMedia("(max-width: 600px)");
+  const mobileQuery = window.matchMedia("(max-width: 680px)");
   const collapsibleDetails = [...document.querySelectorAll("details[data-mobile-collapse]")];
   if (mobileQuery.matches) {
     collapsibleDetails.forEach((details) => details.removeAttribute("open"));
   }
   collapsibleDetails.forEach((details) => {
-    details.querySelector("summary")?.setAttribute("title", t("detailsToggleHint"));
+    const summary = details.querySelector("summary");
+    if (mobileQuery.matches) summary?.setAttribute("title", t("detailsToggleHint"));
+    summary?.addEventListener("click", (event) => {
+      if (!mobileQuery.matches) event.preventDefault();
+    });
     details.addEventListener("toggle", () => {
       if (details.open && lastHours24) {
         requestAnimationFrame(() => {
           drawRainChart(lastHours24);
           drawTemperatureWindChart(lastHours24);
         });
+      }
+    });
+  });
+  mobileQuery.addEventListener("change", ({ matches }) => {
+    collapsibleDetails.forEach((details) => {
+      const summary = details.querySelector("summary");
+      if (matches) summary?.setAttribute("title", t("detailsToggleHint"));
+      else {
+        details.setAttribute("open", "");
+        summary?.removeAttribute("title");
       }
     });
   });

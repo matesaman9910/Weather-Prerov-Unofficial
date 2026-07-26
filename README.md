@@ -4,6 +4,10 @@ A mobile-first, unofficial weather dashboard for Přerov, Czechia. The main ques
 
 Live site: [matesaman9910.github.io/Weather-Prerov-Unofficial](https://matesaman9910.github.io/Weather-Prerov-Unofficial/)
 
+## Version 2.3
+
+- Version 2.3 adds labeled chart scales, improves paired-card sizing, and keeps detail cards fixed open on desktop while preserving mobile collapse.
+
 ## Version 2.2
 
 - Version 2.2.1 shows the radar immediately and adds visible colour-matched legends to both hourly charts.
