@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Přerov Weather — Rain-First</title>
+  <meta name="description" content="A shared daily rain answer for Přerov plus live forecast details, alerts, air quality, pollen, radar, sun and moon.">
+  <meta name="theme-color" content="#0b1020">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; connect-src 'self' https://api.open-meteo.com https://air-quality-api.open-meteo.com https://weatherwebsiteprerov.matejkratochvilbilina.workers.dev; img-src 'self' data:; style-src 'self' 'unsafe-inline'; frame-src https://radar.bourky.cz; base-uri 'none'; form-action 'none'">
+  <style>
+    :root {
+      --bg: #0b1020;
+      --card: #111731;
+      --ink: #e8ecff;
+      --muted: #b6c0ff;
+      --line: #2b345c;
+      --ok: #22c55e;
+      --warn: #f59e0b;
+      --bad: #ef4444;
+      --accent: #77a8ff;
+      --radius: 18px;
+      --glow: transparent;
+      --glow-alpha: 0%;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif;
+      background:
+        radial-gradient(1100px 700px at 10% -10%, #243056 10%, transparent 60%),
+        radial-gradient(900px 700px at 110% 10%, #1a1f35 5%, transparent 60%),
+        linear-gradient(180deg, var(--bg), #0a0f1e);
+      animation: background-shift 14s ease-in-out infinite alternate;
+    }
+
+    body::after {
+      content: "";
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      box-shadow: inset 0 0 70px color-mix(in srgb, var(--glow) var(--glow-alpha), transparent);
+    }
+
+    @keyframes background-shift {
+      from { background-position: 0 0, 0 0, 0 0; }
+      to { background-position: 20px -10px, -20px 10px, 0 0; }
+    }
+
+    a { color: var(--accent); }
+    button { font: inherit; }
+    .wrap { position: relative; z-index: 1; max-width: 1240px; margin: 0 auto; padding: 22px; }
+    .topbar { position: sticky; top: 0; z-index: 20; padding-top: 8px; backdrop-filter: blur(6px); }
+    .bar-row { display: flex; gap: 10px; align-items: stretch; justify-content: space-between; margin-bottom: 12px; }
+    .banner {
+      flex: 1;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      justify-content: center;
+      max-height: 64px;
+      overflow: hidden;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      font-size: clamp(15px, 3.2vw, 19px);
+      line-height: 1.25;
+      cursor: pointer;
+    }
+    .banner.expand { max-height: none; }
+    .banner.green { color: #c9ffe0; background: #0f2818; border-color: #1b5e33; }
+    .banner.yellow { color: #ffe7b5; background: #2e2609; border-color: #7a5c12; }
+    .banner.orange { color: #ffd6b3; background: #2e1b08; border-color: #9c5416; }
+    .banner.red { color: #ffd0d0; background: #2d0d0d; border-color: #8a1f1f; }
+    .banner.gray { color: #c5d1ff; background: #0f1430; border-color: #323c6c; }
+    #alertText { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+
+    header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+    h1 { margin: 0; font-size: clamp(22px, 2.6vw, 32px); }
+    h2 { margin: 0 0 10px; font-size: 20px; }
+    .sub { color: var(--muted); font-size: 14px; }
+    .tiny { font-size: 12px; }
+    .status-line { min-height: 1.4em; margin-top: 8px; }
+    .hero, .row { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+    .card {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, #16203b, #0f1630);
+      box-shadow: 0 10px 30px #0006;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity .5s ease, transform .5s ease;
+    }
+    .card.reveal { opacity: 1; transform: translateY(0); }
+    .answer-row { display: flex; align-items: center; gap: 14px; }
+    .answer {
+      min-width: 170px;
+      padding: 12px 16px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #1a2344;
+      font-size: clamp(34px, 7vw, 60px);
+      font-weight: 800;
+      letter-spacing: .6px;
+      text-align: center;
+    }
+    .answer.ok { background: #142a1b; border-color: #1b5e33; }
+    .answer.warn { background: #2f260e; border-color: #7a5c12; }
+    .answer.bad { background: #2f1414; border-color: #8a1f1f; }
+    .answer.pending { color: var(--muted); font-size: clamp(20px, 5vw, 36px); }
+    .reason { min-height: 2.8em; margin-top: 8px; color: var(--muted); font-size: 14px; }
+    .notice { margin-top: 8px; color: #ffe7b5; font-size: 13px; }
+    .chart { width: 100%; height: 240px; }
+    .legend { margin-top: 6px; }
+    .btn {
+      padding: 9px 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--ink);
+      background: #0f1731;
+      cursor: pointer;
+    }
+    .btn:hover { filter: brightness(1.1); }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .chip, .badge, .level {
+      display: inline-block;
+      padding: 4px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font-size: 13px;
+    }
+    .b-good, .level.green { color: #c9ffe0; background: #0f2818; border-color: #1b5e33; }
+    .b-fair, .level.yellow { color: #ffe7b5; background: #2e2609; border-color: #7a5c12; }
+    .b-mod, .level.orange { color: #ffd6b3; background: #2e1b08; border-color: #9c5416; }
+    .b-poor, .level.red { color: #ffd0d0; background: #2d0d0d; border-color: #8a1f1f; }
+    .days { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; padding: 6px 6px 10px; }
+    .day { min-width: 140px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: #0f1731; text-align: center; }
+    .day .weather-icon { margin: 2px 0; font-size: 28px; }
+    .day .temperature { font-size: 16px; }
+    .radar-wrap { display: flex; flex-direction: column; gap: 10px; }
+    iframe.radar { width: 100%; height: 420px; border: 1px solid var(--line); border-radius: 14px; background: #0b0f1a; }
+    .alerts-list { margin: 6px 0 0 16px; padding: 0; }
+    .alerts-list li { margin-bottom: 8px; }
+    footer { margin: 22px 0 8px; color: #9fb0ff8c; font-size: 12px; line-height: 1.6; text-align: center; }
+
+    @media (max-width: 480px) {
+      .wrap { padding: 14px; }
+      .hero, .row { grid-template-columns: minmax(0, 1fr); }
+      .card { padding: 14px; }
+      .chart { height: 200px; }
+      .banner { max-height: 56px; }
+      .answer-row { align-items: stretch; flex-direction: column; }
+      .answer { min-width: 0; }
+      .bar-row { align-items: flex-start; flex-direction: column; }
+      #asof { padding-left: 4px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      body { animation: none; }
+      .card { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="bar-row">
+        <button id="alertBar" class="banner gray" type="button" aria-live="polite" aria-expanded="false">
+          <span aria-hidden="true">⚠️</span>
+          <span id="alertText">Checking alerts…</span>
+        </button>
+        <div class="sub" id="asof" aria-live="polite">Loading live details…</div>
+      </div>
+    </div>
+
+    <header>
+      <div>
+        <h1>Přerov Weather — Rain-First</h1>
+        <div class="sub">One shared daily answer. Live forecast details update separately.</div>
+      </div>
+      <button id="shareBtn" class="btn" type="button">Share</button>
+    </header>
+
+    <div id="snapshotStatus" class="sub status-line" aria-live="polite">Loading locked daily snapshot…</div>
+
+    <main>
+      <section class="hero">
+        <article class="card">
+          <h2>🌧️ Will it rain today in Přerov?</h2>
+          <div class="answer-row">
+            <div id="rainToday" class="answer pending">PENDING</div>
+            <div id="highlightsToday" class="sub">Waiting for the shared snapshot.</div>
+          </div>
+          <div id="reasonToday" class="reason">The browser will not invent a replacement answer.</div>
+          <div id="snapshotDivergence" class="notice" hidden></div>
+        </article>
+
+        <article class="card">
+          <h2>🌧️ Will it rain tomorrow?</h2>
+          <div class="answer-row">
+            <div id="rainTomorrow" class="answer pending">PENDING</div>
+            <div id="highlightsTomorrow" class="sub">Waiting for the shared snapshot.</div>
+          </div>
+          <div id="reasonTomorrow" class="reason">Published with the same dated snapshot.</div>
+        </article>
+      </section>
+
+      <section class="row" style="margin-top:14px">
+        <article class="card">
+          <h2>📈 Hourly precipitation (next 24h)</h2>
+          <canvas id="rainChart" class="chart" aria-label="Live hourly precipitation amount and probability chart"></canvas>
+          <div id="rainChartSummary" class="sub legend">Latest forecast details. Blue bars: total precipitation. Yellow line: probability.</div>
+        </article>
+        <article class="card">
+          <h2>🌡️ Hourly temperature &amp; wind (next 24h)</h2>
+          <canvas id="tempWindChart" class="chart" aria-label="Live hourly temperature and wind chart"></canvas>
+          <div id="tempChartSummary" class="sub legend">Latest forecast details. Yellow line: temperature. Bars: wind speed.</div>
+        </article>
+      </section>
+
+      <section class="row" style="margin-top:14px">
+        <article class="card">
+          <h2>🧭 Current conditions</h2>
+          <div id="nowLine" class="sub">—</div>
+          <div id="uvChips" class="chips"></div>
+          <div id="dailyTip" class="sub" style="margin-top:10px">Tip: —</div>
+        </article>
+        <article class="card">
+          <h2>☀️ Sun &amp; Moon</h2>
+          <div id="sunLine" class="sub">Sun: —</div>
+          <div id="moonLine" class="sub">Moon: loading dependency…</div>
+        </article>
+      </section>
+
+      <section class="card" style="margin-top:14px">
+        <h2>📅 Seven-day forecast</h2>
+        <div id="daysStrip" class="days" aria-live="polite"></div>
+      </section>
+
+      <section class="row" style="margin-top:14px">
+        <article class="card">
+          <h2>🌫️ Air quality (now) + pollen</h2>
+          <div id="aqBadge" class="badge">—</div>
+          <div id="aqLine" class="sub">—</div>
+          <div id="pollenLine" class="sub">—</div>
+          <div id="aqStatus" class="sub tiny">Loading latest air-quality data…</div>
+        </article>
+        <article class="card">
+          <h2>🛰️ Radar</h2>
+          <div class="radar-wrap">
+            <button id="radarToggle" class="btn" type="button">Show live radar</button>
+            <div id="radarSlot"></div>
+            <div class="sub">If the embed is blocked, <a id="radarOpenLink" href="#" target="_blank" rel="noopener">open radar in a new tab</a>.</div>
+          </div>
+        </article>
+      </section>
+
+      <section class="row" style="margin-top:14px">
+        <article class="card" id="alertsPanel" hidden>
+          <h2>⚠️ Severe weather details</h2>
+          <div id="alertsSummary" class="sub">—</div>
+          <ul id="alertsList" class="sub alerts-list"></ul>
+          <div class="sub">Regional feed: Olomouc Region. <a href="https://www.meteoalarm.org/en/region/CZ" target="_blank" rel="noopener">Open Meteoalarm map</a>.</div>
+        </article>
+        <article class="card">
+          <h2>🧭 Useful links</h2>
+          <ul class="sub">
+            <li><a href="https://www.chmi.cz/aktualni-situace/?l=en" target="_blank" rel="noopener">ČHMÚ current situation (official)</a></li>
+            <li><a href="https://www.meteoalarm.org/en/region/CZ" target="_blank" rel="noopener">Meteoalarm map</a></li>
+            <li><a href="https://www.chmi.cz/files/portal/docs/meteo/rad/inca-cz/?lang=EN" target="_blank" rel="noopener">ČHMÚ radar / nowcasting</a></li>
+          </ul>
+        </article>
+      </section>
+    </main>
+
+    <footer>
+      <strong>Disclaimer.</strong> Experimental hobby project. Unofficial. No guarantee of accuracy, timeliness, or availability. Verify conditions with ČHMÚ and Meteoalarm.<br>
+      <strong>Data.</strong> Open-Meteo (forecast, AQ, pollen). Alerts via Meteoalarm (proxied). Radar © ČHMÚ &amp; partners. No personal data is collected.<br>
+      <strong>Contact.</strong> <a href="mailto:matesaman9910@gmail.com">matesaman9910@gmail.com</a> · <strong>Copyright.</strong> © 2025–2026 matesaman9910. All rights reserved.
+    </footer>
+  </div>
+
+  <script id="suncalcScript" src="https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.js" defer></script>
+  <script type="module" src="./scripts/app.mjs"></script>
+</body>
+</html>

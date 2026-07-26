@@ -1,0 +1,14 @@
+{
+  "name": "prerov-weather-unofficial",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "snapshot": "node scripts/generate-daily-snapshot.mjs",
+    "prepare-site": "node scripts/prepare-site.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

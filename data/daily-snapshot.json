@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "city": {
+    "name": "Přerov",
+    "latitude": 49.4551,
+    "longitude": 17.4509,
+    "timezone": "Europe/Prague"
+  },
+  "generatedAt": "2026-07-26T11:12:35+02:00",
+  "source": {
+    "provider": "Open-Meteo",
+    "fetchedAt": "2026-07-26T11:12:35+02:00",
+    "status": "ok"
+  },
+  "thresholds": {
+    "precipitationMmPerHour": 0.2,
+    "precipitationProbabilityPercent": 60
+  },
+  "days": {
+    "2026-07-26": {
+      "verdict": "NO",
+      "wetPeriods": []
+    },
+    "2026-07-27": {
+      "verdict": "NO",
+      "wetPeriods": []
+    },
+    "2026-07-28": {
+      "verdict": "NO",
+      "wetPeriods": []
+    },
+    "2026-07-29": {
+      "verdict": "NO",
+      "wetPeriods": []
+    },
+    "2026-07-30": {
+      "verdict": "NO",
+      "wetPeriods": []
+    },
+    "2026-07-31": {
+      "verdict": "NO",
+      "wetPeriods": []
+    },
+    "2026-08-01": {
+      "verdict": "NO",
+      "wetPeriods": []
+    }
+  }
+}

@@ -1,0 +1,4 @@
+_site/
+data/previous-daily-snapshot.json
+data/daily-snapshot.json.tmp
+node_modules/
