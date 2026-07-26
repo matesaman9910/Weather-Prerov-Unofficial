@@ -22,7 +22,7 @@ import {
 import { createTranslator, resolveLanguage } from "./i18n.mjs";
 import { waitForSunCalc } from "./suncalc-loader.mjs";
 
-const APP_VERSION = "2.2.0";
+const APP_VERSION = "2.2.1";
 const LANGUAGE_STORAGE_KEY = "prerov-weather-language-v1";
 const LIVE_CACHE_KEY = "prerov-weather-live-v4";
 const SNAPSHOT_CACHE_KEY = "prerov-weather-snapshot-v1";
@@ -537,7 +537,7 @@ function drawTemperatureWindChart(hours) {
 
   drawAnimated((progress) => {
     context.clearRect(0, 0, width, height);
-    context.fillStyle = "#9fb0ff55";
+    context.fillStyle = "#7185bb";
     winds.forEach((wind, index) => {
       const x = padding + index * step;
       const y = windY(wind * progress);
@@ -1052,26 +1052,8 @@ function setupInteractions() {
   });
 
   $("radarOpenLink").href = RADAR_URL;
-  let radarShown = false;
-  $("radarToggle").addEventListener("click", () => {
-    const slot = $("radarSlot");
-    if (!radarShown) {
-      const iframe = document.createElement("iframe");
-      iframe.className = "radar";
-      iframe.setAttribute("sandbox", "allow-scripts allow-same-origin");
-      iframe.setAttribute("referrerpolicy", "no-referrer");
-      iframe.loading = "lazy";
-      iframe.title = t("radarFrameTitle");
-      iframe.src = RADAR_URL;
-      slot.append(iframe);
-      $("radarToggle").textContent = t("hideRadar");
-      radarShown = true;
-    } else {
-      slot.replaceChildren();
-      $("radarToggle").textContent = t("showRadar");
-      radarShown = false;
-    }
-  });
+  $("radarFrame").title = t("radarFrameTitle");
+  $("radarFrame").src = RADAR_URL;
 
   let resizeTimer;
   window.addEventListener("resize", () => {

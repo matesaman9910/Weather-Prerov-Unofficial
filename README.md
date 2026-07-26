@@ -6,6 +6,7 @@ Live site: [matesaman9910.github.io/Weather-Prerov-Unofficial](https://matesaman
 
 ## Version 2.2
 
+- Version 2.2.1 shows the radar immediately and adds visible colour-matched legends to both hourly charts.
 - Moves current conditions and Sun/Moon timing directly below the rain-first answer.
 - Reworks current conditions into labeled, glanceable temperature, wind, cloud, pressure, humidity, and UV values.
 - Adds daylight duration and time-to-sunrise/sunset, plus clearly separated Moon phase, illumination, moonrise, and moonset.
