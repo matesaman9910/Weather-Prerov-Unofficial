@@ -101,10 +101,11 @@ No repository secret is required.
 
 ## Data, privacy, and disclaimer
 
-- Forecasts, air quality, and pollen: [Open-Meteo](https://open-meteo.com/)
-- Alerts: [Meteoalarm](https://www.meteoalarm.org/) through the existing Cloudflare Worker
-- Radar: ČHMÚ and partners through `radar.bourky.cz`
-- Sun/moon calculations: SunCalc
+- Forecasts: [Open-Meteo Weather Forecast API](https://open-meteo.com/en/docs)
+- Air quality and pollen: [Open-Meteo Air Quality API](https://open-meteo.com/en/docs/air-quality-api)
+- Alerts: [Meteoalarm](https://www.meteoalarm.org/en/live/) through the existing Cloudflare Worker, with [ČHMÚ warnings](https://vystrahy-cr.chmi.cz/) as the official Czech reference
+- Radar: ČHMÚ and partners through `radar.bourky.cz`, with the [official ČHMÚ radar viewer](https://produkty.chmi.cz/radar/) as the source reference
+- Sun/moon calculations: [SunCalc](https://github.com/mourner/suncalc)
 
 Experimental hobby project. Unofficial. No guarantee of accuracy, timeliness, or availability. Verify important conditions with ČHMÚ and Meteoalarm. No personal data is collected.
 
