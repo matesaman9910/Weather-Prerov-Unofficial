@@ -19,10 +19,10 @@ import {
   totalPrecipitationMm,
   validateSnapshot,
 } from "./weather-core.mjs";
-import { createTranslator, resolveLanguage } from "./i18n.mjs?v=2.4.1";
+import { createTranslator, resolveLanguage } from "./i18n.mjs?v=2.5.0";
 import { waitForSunCalc } from "./suncalc-loader.mjs";
 
-const APP_VERSION = "2.4.1";
+const APP_VERSION = "2.5.0";
 const LANGUAGE_STORAGE_KEY = "prerov-weather-language-v1";
 const LIVE_CACHE_KEY = "prerov-weather-live-v4";
 const SNAPSHOT_CACHE_KEY = "prerov-weather-snapshot-v1";
@@ -93,6 +93,7 @@ function renderUnavailableDaily(reason = t("snapshotUnavailable")) {
   $("todayLiveCheck").className = "live-check";
   $("todayLiveAgreement").textContent = t("liveComparisonUnavailable");
   $("todayLiveProbability").textContent = t("liveProbabilityLoading");
+  $("todayLiveAdvice").textContent = t("liveAdviceUnavailable");
   if (latestLiveForecast && latestLiveRecords) {
     renderLiveDailyStatus(latestLiveForecast, latestLiveRecords);
   }
@@ -178,6 +179,7 @@ function renderSnapshot(snapshot) {
     : t("snapshotLocked", { generated });
   if (latestLiveForecast && latestLiveRecords) {
     renderLiveDailyStatus(latestLiveForecast, latestLiveRecords);
+    renderLiveTomorrow(latestLiveRecords);
   }
   return true;
 }
@@ -638,9 +640,7 @@ function drawTemperatureWindChart(hours) {
 }
 
 function renderLiveDailyStatus(forecast, records) {
-  const notice = $("snapshotDivergence");
   const liveCheck = $("todayLiveCheck");
-  notice.hidden = true;
   const dateKey = lockedSelection?.dateKey || getPragueDateKey(new Date());
   const currentHours = groupHoursByApiDate(records)[dateKey] || [];
   const currentLiveVerdict = buildWetPeriods(currentHours).length ? "YES" : "NO";
@@ -655,21 +655,20 @@ function renderLiveDailyStatus(forecast, records) {
   if (!lockedSelection) {
     liveCheck.className = "live-check";
     $("todayLiveAgreement").textContent = t("liveComparisonUnavailable");
+    $("todayLiveAdvice").textContent = t("liveAdviceUnavailable");
     return;
   }
 
   const agrees = currentLiveVerdict === lockedSelection.day.verdict;
-  liveCheck.className = `live-check ${agrees ? "agree" : "disagree"}`;
-  $("todayLiveAgreement").textContent = t(agrees ? "liveAgreement" : "liveDisagreement", {
-    answer: t(currentLiveVerdict === "YES" ? "yes" : "no"),
-  });
-  if (!agrees) {
-    notice.textContent = t("divergence", {
-      live: t(currentLiveVerdict === "YES" ? "yes" : "no"),
-      locked: t(lockedSelection.day.verdict === "YES" ? "yes" : "no"),
-    });
-    notice.hidden = false;
-  }
+  const riskIncreased = !agrees
+    && lockedSelection.day.verdict === "NO"
+    && currentLiveVerdict === "YES";
+  const state = agrees ? "stable" : (riskIncreased ? "risk-up" : "risk-down");
+  const statusKey = agrees ? "liveStable" : (riskIncreased ? "liveRiskIncreased" : "liveRiskDecreased");
+  const adviceKey = agrees ? "liveAdviceStable" : (riskIncreased ? "liveAdviceIncreased" : "liveAdviceDecreased");
+  liveCheck.className = `live-check ${state}`;
+  $("todayLiveAgreement").textContent = t(statusKey);
+  $("todayLiveAdvice").textContent = t(adviceKey);
 }
 
 function renderLiveTomorrow(records) {
@@ -1022,6 +1021,7 @@ async function loadLiveData(sunCalcPromise) {
       $("tempChartSummary").textContent = t("tempDataUnavailable");
       $("todayLiveAgreement").textContent = t("liveCheckUnavailable");
       $("todayLiveProbability").textContent = t("liveProbabilityUnavailable");
+      $("todayLiveAdvice").textContent = t("liveAdviceUnavailable");
       $("tomorrowLiveNote").textContent = t("tomorrowLiveUnavailable");
       $("aqStatus").textContent = t("airDataUnavailable");
       $("dailyTip").textContent = t("tipUnavailable", { error: error.message });

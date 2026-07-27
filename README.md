@@ -4,6 +4,12 @@ A mobile-first, unofficial weather dashboard for Přerov, Czechia. The main ques
 
 Live site: [matesaman9910.github.io/Weather-Prerov-Unofficial](https://matesaman9910.github.io/Weather-Prerov-Unofficial/)
 
+## Version 2.5
+
+- Makes today’s card unambiguous: one large stable YES/NO answer, followed by a live “no meaningful change,” “rain risk increased,” or “rain risk decreased” update.
+- Adds plain-language guidance and keeps the peak rain chance visible without presenting a competing second answer.
+- Labels today’s result as stable and tomorrow’s as live so visitors can immediately understand which answer can change.
+
 ## Version 2.4
 
 - Version 2.4.1 fixes the snapshot/live loading race so a visible locked answer can never be paired with “locked answer unavailable.”
