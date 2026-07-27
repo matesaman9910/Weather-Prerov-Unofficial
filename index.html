@@ -232,12 +232,16 @@
     .astro-status { min-height: 3em; margin-top: auto; padding-top: 14px; }
     .moon-phase { margin: 2px 0 12px; font-size: 15px; font-weight: 650; line-height: 1.35; }
 
-    .aq-layout { display: grid; height: 100%; grid-template-columns: minmax(165px, .8fr) 2fr; gap: 12px; }
+    .aq-layout {
+      display: grid;
+      height: 100%;
+      grid-template-columns: minmax(170px, .8fr) minmax(0, 2fr);
+      grid-template-rows: 1fr auto;
+      gap: 0 22px;
+    }
     .aq-overview {
-      padding: 16px;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      background: var(--surface-soft);
+      padding: 4px 22px 4px 0;
+      border-right: 1px solid var(--line);
     }
     .aq-index { display: block; margin: 4px 0 8px; font-size: 50px; font-weight: 760; letter-spacing: -.05em; line-height: 1; }
     .badge, .level {
@@ -250,24 +254,40 @@
     }
     .aq-advice { margin: 12px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
     .aq-details { display: flex; min-width: 0; flex-direction: column; }
-    #aqStatus { margin-top: auto; padding-top: 10px; }
+    #aqStatus { grid-column: 1 / -1; margin-top: 16px; padding-top: 10px; border-top: 1px solid var(--line); }
     .b-good, .level.green { color: #c9f4da; background: #0d271c; border-color: #245d3d; }
     .b-fair, .level.yellow { color: #f4dfb4; background: #2a230f; border-color: #715b24; }
     .b-mod, .level.orange { color: #f3cfac; background: #2b1b0d; border-color: #845026; }
     .b-poor, .level.red { color: #f4c4c4; background: #2b1215; border-color: #7a3038; }
-    .pollutant-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-    .pollutant-grid .metric strong { font-size: 16px; }
-    .pollen-heading { margin: 14px 0 8px; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
-    .pollen-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
-    .pollen-item {
-      padding: 9px 10px;
-      border: 1px solid var(--line);
-      border-radius: 9px;
-      background: var(--surface-soft);
+    .aq-section + .aq-section { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+    .aq-section-heading { margin: 0 0 10px; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+    .pollutant-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 8px; }
+    .pollutant-grid .metric {
+      padding: 3px 10px 4px;
+      border: 0;
+      border-left: 2px solid var(--line-strong);
+      border-radius: 0;
+      background: none;
     }
+    .pollutant-grid .metric strong { font-size: 16px; }
+    .pollen-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; }
+    .pollen-item {
+      min-width: 0;
+      padding: 3px 8px 4px;
+      border-left: 2px solid var(--line-strong);
+    }
+    .pollen-item span { display: block; overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
     .pollen-item strong { display: block; margin-top: 3px; font-size: 15px; }
 
     .chart { width: 100%; height: 240px; }
+    .chart-row { align-items: start; }
+    .chart-row > .chart-card { height: auto; }
+    .chart-card[open] {
+      display: grid;
+      grid-template-rows: 48px 42px 240px 48px;
+      align-content: start;
+    }
+    .chart-card[open] > summary { align-items: flex-start; }
     .chart-key { display: flex; flex-wrap: wrap; gap: 10px 18px; margin: 2px 0 8px; }
     .chart-key-item { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
     .chart-swatch { display: inline-block; width: 24px; flex: 0 0 24px; }
@@ -295,6 +315,34 @@
     iframe.radar { width: 100%; height: 300px; border: 1px solid var(--line); border-radius: 10px; background: #07101a; }
     .alerts-list { margin: 6px 0 0 16px; padding: 0; }
     .alerts-list li { margin-bottom: 8px; }
+    .source-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0 24px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    #alertsPanel[hidden] + .sources-card .source-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .source-grid li { min-width: 0; border-top: 1px solid var(--line); }
+    .source-grid a {
+      position: relative;
+      display: block;
+      min-height: 68px;
+      padding: 13px 28px 12px 0;
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .source-grid a::after {
+      content: "↗";
+      position: absolute;
+      top: 13px;
+      right: 2px;
+      color: var(--accent);
+      font-size: 15px;
+    }
+    .source-grid a:hover { color: #b9def8; }
+    .source-domain { display: block; margin-top: 5px; color: var(--muted); font-size: 11px; letter-spacing: .02em; }
     details.card > summary {
       display: flex;
       align-items: center;
@@ -318,6 +366,9 @@
       .hero { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .hero .nowcast-card { grid-column: 1 / -1; grid-row: 1; min-height: 0; }
       .current-layout, .aq-layout { grid-template-columns: 1fr; }
+      .aq-layout { grid-template-rows: auto auto auto; gap: 16px; }
+      .aq-overview { padding: 0 0 16px; border-right: 0; border-bottom: 1px solid var(--line); }
+      #aqStatus { margin-top: 0; }
       .days { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     }
 
@@ -339,6 +390,8 @@
       .nowcast-value { margin-top: 12px; }
       .astro-grid { grid-template-columns: 1fr; }
       .pollen-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .chart-card[open] { grid-template-rows: auto auto 205px auto; }
+      #alertsPanel[hidden] + .sources-card .source-grid, .source-grid { grid-template-columns: 1fr; }
       .days { display: flex; margin-inline: -4px; overflow-x: auto; scroll-snap-type: x proximity; }
       .day { min-width: 124px; scroll-snap-align: start; }
       .chart { height: 205px; }
@@ -508,7 +561,7 @@
         </details>
       </section>
 
-      <section class="row section-gap">
+      <section class="row chart-row section-gap">
         <details class="card chart-card" data-mobile-collapse open>
           <summary data-i18n="rainChartTitle">Hourly precipitation (next 24h)</summary>
           <div class="chart-key" aria-label="Chart legend">
@@ -557,28 +610,33 @@
               <p id="aqAdvice" class="aq-advice" data-i18n="airQualityLoading">Loading latest air-quality data…</p>
             </div>
             <div class="aq-details">
-              <div class="pollutant-grid">
-                <div class="metric">
-                  <span class="metric-label">PM₂.₅</span>
-                  <strong id="pm25Value">—</strong>
+              <section class="aq-section">
+                <div class="aq-section-heading" data-i18n="pollutantsHeading">Pollutants · µg/m³</div>
+                <div class="pollutant-grid">
+                  <div class="metric">
+                    <span class="metric-label">PM₂.₅</span>
+                    <strong id="pm25Value">—</strong>
+                  </div>
+                  <div class="metric">
+                    <span class="metric-label">PM₁₀</span>
+                    <strong id="pm10Value">—</strong>
+                  </div>
+                  <div class="metric">
+                    <span class="metric-label">O₃</span>
+                    <strong id="ozoneValue">—</strong>
+                  </div>
+                  <div class="metric">
+                    <span class="metric-label">NO₂</span>
+                    <strong id="no2Value">—</strong>
+                  </div>
                 </div>
-                <div class="metric">
-                  <span class="metric-label">PM₁₀</span>
-                  <strong id="pm10Value">—</strong>
-                </div>
-                <div class="metric">
-                  <span class="metric-label">O₃</span>
-                  <strong id="ozoneValue">—</strong>
-                </div>
-                <div class="metric">
-                  <span class="metric-label">NO₂</span>
-                  <strong id="no2Value">—</strong>
-                </div>
-              </div>
-              <div class="pollen-heading" data-i18n="pollenHeading">Pollen · grains/m³</div>
-              <div id="pollenGrid" class="pollen-grid"></div>
-              <div id="aqStatus" class="sub tiny" data-i18n="airQualityLoading">Loading latest air-quality data…</div>
+              </section>
+              <section class="aq-section">
+                <div class="aq-section-heading" data-i18n="pollenHeading">Pollen · grains/m³</div>
+                <div id="pollenGrid" class="pollen-grid"></div>
+              </section>
             </div>
+            <div id="aqStatus" class="sub tiny" data-i18n="airQualityLoading">Loading latest air-quality data…</div>
           </div>
         </details>
         <article class="card radar-card">
@@ -597,15 +655,15 @@
           <ul id="alertsList" class="sub alerts-list"></ul>
           <div class="sub"><span data-i18n="regionalFeedBefore">Regional feed: Olomouc Region. </span><a href="https://www.meteoalarm.org/en/live/" target="_blank" rel="noopener" data-i18n="openMeteoalarm">Open Meteoalarm map</a><span data-i18n="regionalFeedAfter">.</span></div>
         </article>
-        <details class="card" data-mobile-collapse open>
+        <details class="card sources-card" data-mobile-collapse open>
           <summary data-i18n="sourcesTitle">Sources</summary>
-          <ul class="sub">
-            <li><a href="https://open-meteo.com/en/docs" target="_blank" rel="noopener" data-i18n="sourceForecast">Open-Meteo weather forecast API</a></li>
-            <li><a href="https://open-meteo.com/en/docs/air-quality-api" target="_blank" rel="noopener" data-i18n="sourceAir">Open-Meteo air quality and pollen API</a></li>
-            <li><a href="https://www.meteoalarm.org/en/live/" target="_blank" rel="noopener" data-i18n="sourceMeteoalarm">Meteoalarm European warnings</a></li>
-            <li><a href="https://vystrahy-cr.chmi.cz/" target="_blank" rel="noopener" data-i18n="sourceChmiWarnings">ČHMÚ official Czech warnings</a></li>
-            <li><a href="https://produkty.chmi.cz/radar/" target="_blank" rel="noopener" data-i18n="sourceChmiRadar">ČHMÚ radar and nowcasting</a></li>
-            <li><a href="https://github.com/mourner/suncalc" target="_blank" rel="noopener" data-i18n="sourceSunCalc">SunCalc astronomical calculations</a></li>
+          <ul class="source-grid">
+            <li><a href="https://open-meteo.com/en/docs" target="_blank" rel="noopener"><span data-i18n="sourceForecast">Open-Meteo weather forecast API</span><span class="source-domain">open-meteo.com</span></a></li>
+            <li><a href="https://open-meteo.com/en/docs/air-quality-api" target="_blank" rel="noopener"><span data-i18n="sourceAir">Open-Meteo air quality and pollen API</span><span class="source-domain">open-meteo.com</span></a></li>
+            <li><a href="https://www.meteoalarm.org/en/live/" target="_blank" rel="noopener"><span data-i18n="sourceMeteoalarm">Meteoalarm European warnings</span><span class="source-domain">meteoalarm.org</span></a></li>
+            <li><a href="https://vystrahy-cr.chmi.cz/" target="_blank" rel="noopener"><span data-i18n="sourceChmiWarnings">ČHMÚ official Czech warnings</span><span class="source-domain">chmi.cz</span></a></li>
+            <li><a href="https://produkty.chmi.cz/radar/" target="_blank" rel="noopener"><span data-i18n="sourceChmiRadar">ČHMÚ radar and nowcasting</span><span class="source-domain">chmi.cz</span></a></li>
+            <li><a href="https://github.com/mourner/suncalc" target="_blank" rel="noopener"><span data-i18n="sourceSunCalc">SunCalc astronomical calculations</span><span class="source-domain">github.com/mourner/suncalc</span></a></li>
           </ul>
         </details>
       </section>
@@ -619,6 +677,6 @@
   </div>
 
   <script id="suncalcScript" src="https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.js" defer></script>
-  <script type="module" src="./scripts/app.mjs?v=2.5.2"></script>
+  <script type="module" src="./scripts/app.mjs?v=2.6.0"></script>
 </body>
 </html>

@@ -4,6 +4,12 @@ A mobile-first, unofficial weather dashboard for Přerov, Czechia. The main ques
 
 Live site: [matesaman9910.github.io/Weather-Prerov-Unofficial](https://matesaman9910.github.io/Weather-Prerov-Unofficial/)
 
+## Version 2.6
+
+- Aligns both hourly chart cards to the same internal grid and overall height.
+- Rebuilds Air Quality & Pollen as a calm, structured readout without a pile of nested cards.
+- Uses the full Sources area with a responsive three-column link directory and visible provider domains.
+
 ## Version 2.5
 
 - Version 2.5.2 shortens the site title to “Přerov Weather” in both languages.
