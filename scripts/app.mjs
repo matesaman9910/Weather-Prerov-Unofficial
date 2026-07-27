@@ -19,10 +19,10 @@ import {
   totalPrecipitationMm,
   validateSnapshot,
 } from "./weather-core.mjs";
-import { createTranslator, resolveLanguage } from "./i18n.mjs?v=2.4.0";
+import { createTranslator, resolveLanguage } from "./i18n.mjs?v=2.4.1";
 import { waitForSunCalc } from "./suncalc-loader.mjs";
 
-const APP_VERSION = "2.4.0";
+const APP_VERSION = "2.4.1";
 const LANGUAGE_STORAGE_KEY = "prerov-weather-language-v1";
 const LIVE_CACHE_KEY = "prerov-weather-live-v4";
 const SNAPSHOT_CACHE_KEY = "prerov-weather-snapshot-v1";
@@ -39,6 +39,8 @@ let t = createTranslator(language);
 let currentSnapshot = null;
 let lockedSelection = null;
 let lastHours24 = null;
+let latestLiveForecast = null;
+let latestLiveRecords = null;
 
 function safeReadCache(key) {
   try {
@@ -91,6 +93,9 @@ function renderUnavailableDaily(reason = t("snapshotUnavailable")) {
   $("todayLiveCheck").className = "live-check";
   $("todayLiveAgreement").textContent = t("liveComparisonUnavailable");
   $("todayLiveProbability").textContent = t("liveProbabilityLoading");
+  if (latestLiveForecast && latestLiveRecords) {
+    renderLiveDailyStatus(latestLiveForecast, latestLiveRecords);
+  }
 }
 
 function periodSummary(period) {
@@ -171,6 +176,9 @@ function renderSnapshot(snapshot) {
   $("snapshotStatus").textContent = selection.stale
     ? t("snapshotStale", { generated })
     : t("snapshotLocked", { generated });
+  if (latestLiveForecast && latestLiveRecords) {
+    renderLiveDailyStatus(latestLiveForecast, latestLiveRecords);
+  }
   return true;
 }
 
@@ -947,6 +955,8 @@ function paintLive(forecast, airQuality, {
   sunCalcPromise,
 }) {
   const records = validateLiveForecast(forecast);
+  latestLiveForecast = forecast;
+  latestLiveRecords = records;
   const nowIndex = findCurrentHourIndex(forecast.hourly.time);
   lastHours24 = records.slice(nowIndex, nowIndex + 24);
   drawRainChart(lastHours24);

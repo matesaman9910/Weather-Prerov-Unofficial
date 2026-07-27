@@ -6,6 +6,7 @@ Live site: [matesaman9910.github.io/Weather-Prerov-Unofficial](https://matesaman
 
 ## Version 2.4
 
+- Version 2.4.1 fixes the snapshot/live loading race so a visible locked answer can never be paired with “locked answer unavailable.”
 - Keeps today’s YES/NO answer locked while showing whether the latest forecast still agrees and the latest maximum precipitation probability.
 - Makes tomorrow’s YES/NO answer live, so it can change as Open-Meteo refreshes before tomorrow begins.
 
