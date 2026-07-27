@@ -1,4 +1,4 @@
-# Přerov Weather — Rain-First
+# Přerov Weather
 
 A mobile-first, unofficial weather dashboard for Přerov, Czechia. The main question—“Will it rain today?”—comes from one shared, dated snapshot. Current conditions, charts, air quality, pollen, alerts, radar, and the seven-day forecast continue to update live.
 
@@ -6,6 +6,7 @@ Live site: [matesaman9910.github.io/Weather-Prerov-Unofficial](https://matesaman
 
 ## Version 2.5
 
+- Version 2.5.2 shortens the site title to “Přerov Weather” in both languages.
 - Version 2.5.1 makes increased rain risk a red pulsing alert and adds bilingual, localhost-only QA scenarios for both forecast-change directions.
 - Makes today’s card unambiguous: one large stable YES/NO answer, followed by a live “no meaningful change,” “rain risk increased,” or “rain risk decreased” update.
 - Adds plain-language guidance and keeps the peak rain chance visible without presenting a competing second answer.

@@ -2,7 +2,7 @@ export const SUPPORTED_LANGUAGES = Object.freeze(["cs", "en"]);
 
 const messages = {
   en: {
-    pageTitle: "Přerov Weather — Rain-First",
+    pageTitle: "Přerov Weather",
     pageDescription: "A shared daily rain answer for Přerov plus live forecast details, alerts, air quality, pollen, radar, sun and moon.",
     checkingAlerts: "Checking alerts…",
     loadingLive: "Loading live details…",
@@ -210,7 +210,7 @@ const messages = {
     nowcastAmount: "About {amount} mm in that 15-minute interval.",
   },
   cs: {
-    pageTitle: "Počasí Přerov — déšť především",
+    pageTitle: "Přerov Weather",
     pageDescription: "Společná denní odpověď na déšť v Přerově a živá předpověď, výstrahy, kvalita ovzduší, pyl, radar, Slunce a Měsíc.",
     checkingAlerts: "Kontroluji výstrahy…",
     loadingLive: "Načítám živé údaje…",
