@@ -19,10 +19,10 @@ import {
   totalPrecipitationMm,
   validateSnapshot,
 } from "./weather-core.mjs";
-import { createTranslator, resolveLanguage } from "./i18n.mjs?v=2.5.0";
+import { createTranslator, resolveLanguage } from "./i18n.mjs?v=2.5.1";
 import { waitForSunCalc } from "./suncalc-loader.mjs";
 
-const APP_VERSION = "2.5.0";
+const APP_VERSION = "2.5.1";
 const LANGUAGE_STORAGE_KEY = "prerov-weather-language-v1";
 const LIVE_CACHE_KEY = "prerov-weather-live-v4";
 const SNAPSHOT_CACHE_KEY = "prerov-weather-snapshot-v1";
@@ -1209,6 +1209,43 @@ async function init() {
     loadLiveData(sunCalcPromise),
     loadAlerts(),
   ]);
+  applyLocalRainChangeDemo();
+}
+
+function applyLocalRainChangeDemo() {
+  if (!["127.0.0.1", "localhost"].includes(location.hostname)) return;
+  const scenario = new URLSearchParams(location.search).get("demo");
+  if (!["risk-up", "risk-down"].includes(scenario)) return;
+
+  const riskIncreased = scenario === "risk-up";
+  setAnswer(
+    $("rainToday"),
+    t(riskIncreased ? "no" : "yes"),
+    riskIncreased ? "ok" : "bad",
+  );
+  $("highlightsToday").textContent = riskIncreased ? t("allPublishedDry") : "10:00–11:00";
+  $("reasonToday").textContent = riskIncreased
+    ? t("noSignificantToday")
+    : t("startsPeakEnds", {
+      start: "10:00",
+      end: "11:00",
+      peak: "10:00",
+      probability: 70,
+      amount: "0.8",
+    });
+  $("todayLiveCheck").className = `live-check ${riskIncreased ? "risk-up" : "risk-down"}`;
+  $("todayLiveAgreement").textContent = t(riskIncreased ? "liveRiskIncreased" : "liveRiskDecreased");
+  $("todayLiveProbability").textContent = t("liveProbability", {
+    probability: riskIncreased ? 65 : 15,
+  });
+  $("todayLiveAdvice").textContent = t(
+    riskIncreased ? "liveAdviceIncreased" : "liveAdviceDecreased",
+  );
+  $("snapshotStatus").textContent = t(
+    riskIncreased ? "demoRiskUpStatus" : "demoRiskDownStatus",
+  );
+  $("asof").textContent = t("demoLiveDataNotice");
+  document.title = t(riskIncreased ? "demoRiskUpTitle" : "demoRiskDownTitle");
 }
 
 init();

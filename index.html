@@ -149,13 +149,34 @@
       border-radius: 0 9px 9px 0;
       background: var(--surface-soft);
     }
+    @keyframes risk-alert-pulse {
+      0%, 100% {
+        border-color: #9b333c;
+        border-left-color: #ff5d68;
+        box-shadow: 0 0 0 0 #ff5d6814, 0 0 10px #ff5d6812;
+      }
+      50% {
+        border-color: #ef5964;
+        border-left-color: #ff8b93;
+        box-shadow: 0 0 0 3px #ff5d6824, 0 0 24px #ff5d6842;
+      }
+    }
     .live-check.stable { border-left-color: var(--ok); }
-    .live-check.risk-up { border-left-color: var(--warn); background: #211d12; }
+    .live-check.risk-up {
+      border-color: #9b333c;
+      border-left-color: #ff5d68;
+      background: #301418;
+      animation: risk-alert-pulse 1.4s ease-in-out infinite;
+    }
+    .live-check.risk-up .live-check-head strong { color: #ffd4d7; }
     .live-check.risk-down { border-left-color: var(--accent); background: #102238; }
     .live-check-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 3px; }
     .live-check-head span { color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
     .live-check-head strong { font-size: 13px; text-align: right; }
     .live-advice { margin-top: 3px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+    @media (prefers-reduced-motion: reduce) {
+      .live-check.risk-up { animation: none; box-shadow: 0 0 0 2px #ff5d6824, 0 0 18px #ff5d6830; }
+    }
 
     .current-layout { display: grid; grid-template-columns: 1fr 1.8fr; gap: 16px; align-items: stretch; }
     .current-primary {
@@ -598,6 +619,6 @@
   </div>
 
   <script id="suncalcScript" src="https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.js" defer></script>
-  <script type="module" src="./scripts/app.mjs?v=2.5.0"></script>
+  <script type="module" src="./scripts/app.mjs?v=2.5.1"></script>
 </body>
 </html>
