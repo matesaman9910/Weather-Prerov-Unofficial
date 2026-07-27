@@ -19,10 +19,10 @@ import {
   totalPrecipitationMm,
   validateSnapshot,
 } from "./weather-core.mjs";
-import { createTranslator, resolveLanguage } from "./i18n.mjs?v=2.3.0";
+import { createTranslator, resolveLanguage } from "./i18n.mjs?v=2.4.0";
 import { waitForSunCalc } from "./suncalc-loader.mjs";
 
-const APP_VERSION = "2.3.0";
+const APP_VERSION = "2.4.0";
 const LANGUAGE_STORAGE_KEY = "prerov-weather-language-v1";
 const LIVE_CACHE_KEY = "prerov-weather-live-v4";
 const SNAPSHOT_CACHE_KEY = "prerov-weather-snapshot-v1";
@@ -87,6 +87,10 @@ function renderUnavailableDaily(reason = t("snapshotUnavailable")) {
   setAnswer($("rainTomorrow"), t("pending"), "pending");
   $("reasonTomorrow").textContent = t("tomorrowUnavailable");
   $("highlightsTomorrow").textContent = "—";
+  $("tomorrowLiveNote").textContent = t("tomorrowLiveWaiting");
+  $("todayLiveCheck").className = "live-check";
+  $("todayLiveAgreement").textContent = t("liveComparisonUnavailable");
+  $("todayLiveProbability").textContent = t("liveProbabilityLoading");
 }
 
 function periodSummary(period) {
@@ -153,6 +157,7 @@ function renderSnapshot(snapshot) {
     $("reasonTomorrow").textContent = t("tomorrowDateMissing", { date: tomorrowKey });
     $("highlightsTomorrow").textContent = "—";
   }
+  $("tomorrowLiveNote").textContent = t("tomorrowLiveWaiting");
 
   const generated = new Intl.DateTimeFormat(locale, {
     timeZone: CITY.timezone,
@@ -624,19 +629,63 @@ function drawTemperatureWindChart(hours) {
   });
 }
 
-function renderLiveDivergence(records) {
+function renderLiveDailyStatus(forecast, records) {
   const notice = $("snapshotDivergence");
+  const liveCheck = $("todayLiveCheck");
   notice.hidden = true;
-  if (!lockedSelection) return;
-  const currentHours = groupHoursByApiDate(records)[lockedSelection.dateKey] || [];
+  const dateKey = lockedSelection?.dateKey || getPragueDateKey(new Date());
+  const currentHours = groupHoursByApiDate(records)[dateKey] || [];
   const currentLiveVerdict = buildWetPeriods(currentHours).length ? "YES" : "NO";
-  if (currentLiveVerdict !== lockedSelection.day.verdict) {
+  const dailyIndex = forecast.daily?.time?.indexOf(dateKey) ?? -1;
+  const probability = dailyIndex >= 0
+    ? forecast.daily?.precipitation_probability_max?.[dailyIndex]
+    : null;
+  $("todayLiveProbability").textContent = Number.isFinite(probability)
+    ? t("liveProbability", { probability: Math.round(probability) })
+    : t("liveProbabilityUnavailable");
+
+  if (!lockedSelection) {
+    liveCheck.className = "live-check";
+    $("todayLiveAgreement").textContent = t("liveComparisonUnavailable");
+    return;
+  }
+
+  const agrees = currentLiveVerdict === lockedSelection.day.verdict;
+  liveCheck.className = `live-check ${agrees ? "agree" : "disagree"}`;
+  $("todayLiveAgreement").textContent = t(agrees ? "liveAgreement" : "liveDisagreement", {
+    answer: t(currentLiveVerdict === "YES" ? "yes" : "no"),
+  });
+  if (!agrees) {
     notice.textContent = t("divergence", {
       live: t(currentLiveVerdict === "YES" ? "yes" : "no"),
       locked: t(lockedSelection.day.verdict === "YES" ? "yes" : "no"),
     });
     notice.hidden = false;
   }
+}
+
+function renderLiveTomorrow(records) {
+  const tomorrowKey = addDateKey(getPragueDateKey(new Date()), 1);
+  const tomorrowHours = groupHoursByApiDate(records)[tomorrowKey] || [];
+  if (!tomorrowHours.length) {
+    $("tomorrowLiveNote").textContent = t("tomorrowLiveUnavailable");
+    return;
+  }
+
+  const wetPeriods = buildWetPeriods(tomorrowHours);
+  const day = {
+    verdict: wetPeriods.length ? "YES" : "NO",
+    wetPeriods,
+  };
+  renderSnapshotDay(
+    day,
+    $("rainTomorrow"),
+    $("reasonTomorrow"),
+    $("highlightsTomorrow"),
+    false,
+  );
+  if (!wetPeriods.length) $("reasonTomorrow").textContent = t("noSignificantLive");
+  $("tomorrowLiveNote").textContent = t("tomorrowLiveNote");
 }
 
 function renderCurrentConditions(forecast, records, nowIndex) {
@@ -907,7 +956,8 @@ function paintLive(forecast, airQuality, {
   renderSevenDayForecast(forecast);
   renderAirQuality(airQuality, airQualityFetchedAt);
   renderSunAndMoon(forecast, sunCalcPromise);
-  renderLiveDivergence(records);
+  renderLiveDailyStatus(forecast, records);
+  renderLiveTomorrow(records);
   $("dailyTip").textContent = computeTip(forecast, airQuality, records, nowIndex);
   $("asof").textContent = `${t(cached ? "cachedLive" : "liveFetched")} ${formatFetchedTime(forecastFetchedAt)} · v${APP_VERSION}`;
 }
@@ -960,6 +1010,9 @@ async function loadLiveData(sunCalcPromise) {
       $("nextRain").textContent = t("nowcastUnavailable");
       $("rainChartSummary").textContent = t("rainDataUnavailable");
       $("tempChartSummary").textContent = t("tempDataUnavailable");
+      $("todayLiveAgreement").textContent = t("liveCheckUnavailable");
+      $("todayLiveProbability").textContent = t("liveProbabilityUnavailable");
+      $("tomorrowLiveNote").textContent = t("tomorrowLiveUnavailable");
       $("aqStatus").textContent = t("airDataUnavailable");
       $("dailyTip").textContent = t("tipUnavailable", { error: error.message });
     }

@@ -134,6 +134,19 @@
     .nowcast-card.dry { border-top-color: var(--ok); }
     .reason { min-height: 2.8em; margin-top: 10px; color: var(--muted); font-size: 14px; line-height: 1.45; }
     .notice { margin-top: 8px; color: #f4dfb4; font-size: 13px; }
+    .live-check {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--line-strong);
+      border-radius: 0 9px 9px 0;
+      background: var(--surface-soft);
+    }
+    .live-check.agree { border-left-color: var(--ok); }
+    .live-check.disagree { border-left-color: var(--warn); background: #211d12; }
+    .live-check-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 3px; }
+    .live-check-head span { color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+    .live-check-head strong { font-size: 13px; text-align: right; }
 
     .current-layout { display: grid; grid-template-columns: 1fr 1.8fr; gap: 16px; align-items: stretch; }
     .current-primary {
@@ -355,6 +368,13 @@
           </div>
           <div id="reasonToday" class="reason" data-i18n="noReplacement">The browser will not invent a replacement answer.</div>
           <div id="snapshotDivergence" class="notice" hidden></div>
+          <div id="todayLiveCheck" class="live-check">
+            <div class="live-check-head">
+              <span data-i18n="latestForecastLabel">Latest forecast</span>
+              <strong id="todayLiveAgreement" data-i18n="checkingLiveAgreement">Checking…</strong>
+            </div>
+            <div id="todayLiveProbability" class="sub tiny" data-i18n="liveProbabilityLoading">Loading today’s precipitation probability…</div>
+          </div>
         </article>
 
         <article id="nowcastCard" class="card nowcast-card">
@@ -370,6 +390,7 @@
             <div id="highlightsTomorrow" class="sub" data-i18n="waitingSnapshot">Waiting for the shared snapshot.</div>
           </div>
           <div id="reasonTomorrow" class="reason" data-i18n="sameSnapshot">Published with the same dated snapshot.</div>
+          <div id="tomorrowLiveNote" class="sub tiny" data-i18n="tomorrowLiveWaiting">Waiting for the latest live forecast.</div>
         </article>
       </section>
 
@@ -566,6 +587,6 @@
   </div>
 
   <script id="suncalcScript" src="https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.js" defer></script>
-  <script type="module" src="./scripts/app.mjs?v=2.3.0"></script>
+  <script type="module" src="./scripts/app.mjs?v=2.4.0"></script>
 </body>
 </html>

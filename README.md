@@ -4,6 +4,11 @@ A mobile-first, unofficial weather dashboard for Přerov, Czechia. The main ques
 
 Live site: [matesaman9910.github.io/Weather-Prerov-Unofficial](https://matesaman9910.github.io/Weather-Prerov-Unofficial/)
 
+## Version 2.4
+
+- Keeps today’s YES/NO answer locked while showing whether the latest forecast still agrees and the latest maximum precipitation probability.
+- Makes tomorrow’s YES/NO answer live, so it can change as Open-Meteo refreshes before tomorrow begins.
+
 ## Version 2.3
 
 - Version 2.3 adds labeled chart scales, improves paired-card sizing, and keeps detail cards fixed open on desktop while preserving mobile collapse.
@@ -33,7 +38,7 @@ Version 1.9 calculated “today” independently in every browser from the curre
 Version 2.0 separates two data classes:
 
 - `data/daily-snapshot.json` is the shared authority for dated YES/NO cards and their wet-period evidence.
-- Live browser requests provide current conditions, next-24-hour charts, AQI/pollen, alerts, sun/moon detail, and the seven-day forecast. Live data never replaces the locked daily card.
+- Live browser requests provide tomorrow’s changeable YES/NO answer, current conditions, next-24-hour charts, AQI/pollen, alerts, sun/moon detail, and the seven-day forecast. Live data never replaces today’s locked daily card.
 
 If the current Prague date is absent from the snapshot, the card says `PENDING`; it does not silently calculate a replacement from live data. A current-date entry from an older snapshot is allowed as a schedule-delay fallback and is clearly marked stale.
 
