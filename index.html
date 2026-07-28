@@ -26,8 +26,6 @@
       --wind-bars: #7185bb;
       --temperature-line: #ffd166;
       --radius: 16px;
-      --glow: transparent;
-      --glow-alpha: 0%;
     }
 
     * { box-sizing: border-box; }
@@ -41,19 +39,10 @@
         radial-gradient(900px 500px at 12% -10%, #16314a 0%, transparent 65%),
         var(--bg);
     }
-    body::after {
-      content: "";
-      pointer-events: none;
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-      box-shadow: inset 0 0 64px color-mix(in srgb, var(--glow) var(--glow-alpha), transparent);
-    }
-
     a { color: var(--accent); text-underline-offset: 3px; }
     button { font: inherit; }
     .wrap { position: relative; z-index: 1; max-width: 1240px; margin: 0 auto; padding: 24px; }
-    .topbar { position: sticky; top: 0; z-index: 20; padding-top: 6px; background: linear-gradient(var(--bg) 15%, transparent); }
+    .topbar { position: sticky; top: 0; z-index: 20; padding-top: 6px; background: none; }
     .bar-row { display: flex; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 18px; }
     .banner {
       flex: 1;
@@ -313,17 +302,94 @@
     .day .temperature { margin: 3px 0; font-size: 16px; font-weight: 670; }
     .radar-wrap { display: flex; flex-direction: column; gap: 10px; }
     iframe.radar { width: 100%; height: 300px; border: 1px solid var(--line); border-radius: 10px; background: #07101a; }
-    .alerts-list { margin: 6px 0 0 16px; padding: 0; }
-    .alerts-list li { margin-bottom: 8px; }
+    @keyframes active-alert-pulse {
+      0%, 100% { box-shadow: 0 14px 34px #00000030, 0 0 0 0 color-mix(in srgb, var(--alert-color) 8%, transparent); }
+      50% { box-shadow: 0 14px 34px #00000030, 0 0 0 3px color-mix(in srgb, var(--alert-color) 18%, transparent), 0 0 28px color-mix(in srgb, var(--alert-color) 22%, transparent); }
+    }
+    .alert-panel {
+      --alert-color: #e6b85c;
+      border-color: color-mix(in srgb, var(--alert-color) 58%, var(--line));
+      border-top: 3px solid var(--alert-color);
+      background:
+        linear-gradient(120deg, color-mix(in srgb, var(--alert-color) 10%, transparent), transparent 45%),
+        var(--surface);
+      animation: active-alert-pulse 1.8s ease-in-out infinite;
+      scroll-margin-top: 78px;
+    }
+    .alert-panel.yellow { --alert-color: #e6b85c; }
+    .alert-panel.orange { --alert-color: #f0954e; }
+    .alert-panel.red { --alert-color: #ef6f77; }
+    .alert-panel:focus { outline: none; }
+    .alert-panel:focus-visible { outline: 2px solid var(--alert-color); outline-offset: 3px; }
+    .alert-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+    .alert-panel-head h2 { margin-bottom: 0; font-size: 22px; }
+    .alert-kicker {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--alert-color);
+      font-size: 11px;
+      font-weight: 750;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .alert-summary { margin-top: 12px; color: #c8d5e2; font-size: 14px; line-height: 1.45; }
+    .alerts-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 10px;
+      margin: 16px 0;
+    }
+    .alert-item {
+      min-width: 0;
+      padding: 13px 14px;
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--item-alert-color, var(--alert-color));
+      border-radius: 0 10px 10px 0;
+      background: #0c1725cc;
+    }
+    .alert-item.yellow { --item-alert-color: #e6b85c; }
+    .alert-item.orange { --item-alert-color: #f0954e; }
+    .alert-item.red { --item-alert-color: #ef6f77; }
+    .alert-item-level {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--item-alert-color, var(--alert-color));
+      font-size: 10px;
+      font-weight: 750;
+      letter-spacing: .075em;
+      text-transform: uppercase;
+    }
+    .alert-item-title { display: block; font-size: 15px; line-height: 1.4; }
+    .alert-item-until { display: block; margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .alert-source-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .alert-source-link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 11px 13px;
+      border: 1px solid var(--line-strong);
+      border-radius: 9px;
+      background: #101f31;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 650;
+      text-decoration: none;
+    }
+    .alert-source-link::after { content: "↗"; color: var(--accent); }
+    .alert-source-link:hover { border-color: var(--accent); background: #15283e; }
+    @media (prefers-reduced-motion: reduce) {
+      .alert-panel { animation: none; box-shadow: 0 14px 34px #00000030, 0 0 0 2px color-mix(in srgb, var(--alert-color) 18%, transparent); }
+    }
     .source-grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 0 24px;
       margin: 0;
       padding: 0;
       list-style: none;
     }
-    #alertsPanel[hidden] + .sources-card .source-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .sources-card { grid-column: 1 / -1; }
     .source-grid li { min-width: 0; border-top: 1px solid var(--line); }
     .source-grid a {
       position: relative;
@@ -359,7 +425,6 @@
     details.card > summary::after { content: "+"; display: none; color: var(--muted); font-size: 22px; font-weight: 400; }
     details.card[open] > summary { margin-bottom: 14px; }
     details.card[open] > summary::after { content: "−"; }
-    #alertsPanel[hidden] + details { grid-column: 1 / -1; }
     footer { margin: 26px 0 8px; color: #8093a8; font-size: 12px; line-height: 1.65; text-align: center; }
 
     @media (max-width: 960px) {
@@ -386,12 +451,16 @@
       .hero .nowcast-card { grid-column: auto; grid-row: auto; }
       .hero .card { min-height: 0; }
       .card { padding: 16px; }
+      .alert-panel-head { gap: 12px; }
+      .alert-panel-head h2 { font-size: 19px; }
+      .alert-panel { scroll-margin-top: 12px; }
+      .alerts-list, .alert-source-links { grid-template-columns: 1fr; }
       .answer-row { grid-template-columns: 118px 1fr; }
       .nowcast-value { margin-top: 12px; }
       .astro-grid { grid-template-columns: 1fr; }
       .pollen-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .chart-card[open] { grid-template-rows: auto auto 205px auto; }
-      #alertsPanel[hidden] + .sources-card .source-grid, .source-grid { grid-template-columns: 1fr; }
+      .source-grid { grid-template-columns: 1fr; }
       .days { display: flex; margin-inline: -4px; overflow-x: auto; scroll-snap-type: x proximity; }
       .day { min-width: 124px; scroll-snap-align: start; }
       .chart { height: 205px; }
@@ -478,6 +547,22 @@
           <div id="tomorrowLiveNote" class="sub tiny" data-i18n="tomorrowLiveWaiting">Waiting for the latest live forecast.</div>
         </article>
       </section>
+
+      <article class="card alert-panel section-gap" id="alertsPanel" hidden aria-live="polite" tabindex="-1">
+        <div class="alert-panel-head">
+          <div>
+            <span class="alert-kicker" data-i18n="activeWarningLabel">Active warning for Přerov and the Olomouc Region</span>
+            <h2 id="alertsTitle" data-i18n="alertsTitle">Severe weather details</h2>
+          </div>
+          <span id="alertsLevelBadge" class="level yellow">—</span>
+        </div>
+        <div id="alertsSummary" class="alert-summary">—</div>
+        <div id="alertsList" class="alerts-list"></div>
+        <nav class="alert-source-links" data-i18n-aria-label="alertVerificationSources">
+          <a class="alert-source-link" href="https://vystrahy-cr.chmi.cz/" target="_blank" rel="noopener" data-i18n="verifyChmiWarnings">Verify with ČHMÚ</a>
+          <a class="alert-source-link" href="https://www.meteoalarm.org/en/live/" target="_blank" rel="noopener" data-i18n="compareMeteoalarm">Compare with Meteoalarm</a>
+        </nav>
+      </article>
 
       <section class="row balanced-row section-gap">
         <article class="card">
@@ -649,12 +734,6 @@
       </section>
 
       <section class="row section-gap">
-        <article class="card" id="alertsPanel" hidden>
-          <h2 data-i18n="alertsTitle">Severe weather details</h2>
-          <div id="alertsSummary" class="sub">—</div>
-          <ul id="alertsList" class="sub alerts-list"></ul>
-          <div class="sub"><span data-i18n="regionalFeedBefore">Regional feed: Olomouc Region. </span><a href="https://www.meteoalarm.org/en/live/" target="_blank" rel="noopener" data-i18n="openMeteoalarm">Open Meteoalarm map</a><span data-i18n="regionalFeedAfter">.</span></div>
-        </article>
         <details class="card sources-card" data-mobile-collapse open>
           <summary data-i18n="sourcesTitle">Sources</summary>
           <ul class="source-grid">
@@ -677,6 +756,6 @@
   </div>
 
   <script id="suncalcScript" src="https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.js" defer></script>
-  <script type="module" src="./scripts/app.mjs?v=2.6.0"></script>
+  <script type="module" src="./scripts/app.mjs?v=2.7.0"></script>
 </body>
 </html>

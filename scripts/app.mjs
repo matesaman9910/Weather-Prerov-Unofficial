@@ -19,15 +19,16 @@ import {
   totalPrecipitationMm,
   validateSnapshot,
 } from "./weather-core.mjs";
-import { createTranslator, resolveLanguage } from "./i18n.mjs?v=2.6.0";
+import { createTranslator, resolveLanguage } from "./i18n.mjs?v=2.7.0";
 import { waitForSunCalc } from "./suncalc-loader.mjs";
 
-const APP_VERSION = "2.6.0";
+const APP_VERSION = "2.7.0";
 const LANGUAGE_STORAGE_KEY = "prerov-weather-language-v1";
 const LIVE_CACHE_KEY = "prerov-weather-live-v4";
 const SNAPSHOT_CACHE_KEY = "prerov-weather-snapshot-v1";
 const LIVE_CACHE_MAX_AGE = 6 * 60 * 60 * 1000;
 const PROXY_BASE = "https://weatherwebsiteprerov.matejkratochvilbilina.workers.dev";
+const CHMI_WARNINGS_URL = "https://vystrahy-cr.chmi.cz/";
 const RADAR_URL = `https://radar.bourky.cz/index.php?img_to_load=10&lat=${CITY.latitude.toFixed(5)}&lon=${CITY.longitude.toFixed(5)}&zoom=10&map_id=1&anim=1&repeat=0&last=0&l_type=0&l_res=0&fcst=1&prod=0&r_opa=25&l_opa=16&b_opa=100&menu_weather=0&menu_weathergraphs=0&menu_webcam=0&menu_cells=0&menu_blitzortung=0&menu_sivs=0&menu_estofex=0&menu_metar=0&menu_planes=0&menu_hydro=0&menu_aero=0&menu_radars=0&menu_wind=0&menu_airquality=0&menu_chasers=0&menu_daynight=1&synop_selected=T&gps=false`;
 const LOW_MOTION = window.matchMedia("(prefers-reduced-motion: reduce)").matches
   || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4);
@@ -65,6 +66,9 @@ function applyStaticTranslations() {
   document.querySelector('meta[name="description"]')?.setAttribute("content", t("pageDescription"));
   for (const node of document.querySelectorAll("[data-i18n]")) {
     node.textContent = t(node.dataset.i18n);
+  }
+  for (const node of document.querySelectorAll("[data-i18n-aria-label]")) {
+    node.setAttribute("aria-label", t(node.dataset.i18nAriaLabel));
   }
   $("rainChart").setAttribute("aria-label", t("rainChartAria"));
   $("tempWindChart").setAttribute("aria-label", t("tempChartAria"));
@@ -1039,8 +1043,58 @@ function setAlertBanner(text, level) {
     : alertPresentation(level);
   $("alertBar").className = presentation.className;
   $("alertText").textContent = text;
-  document.documentElement.style.setProperty("--glow", presentation.glowColor);
-  document.documentElement.style.setProperty("--glow-alpha", presentation.glowAlpha);
+}
+
+function alertSeverityLabel(level) {
+  const normalized = normalizeSeverity(level);
+  const key = `alertSeverity${normalized[0].toUpperCase()}${normalized.slice(1)}`;
+  return t(key);
+}
+
+function hideActiveAlerts() {
+  const panel = $("alertsPanel");
+  panel.hidden = true;
+  panel.className = "card alert-panel section-gap";
+  $("alertsList").replaceChildren();
+}
+
+function renderActiveAlerts(activeItems, severity) {
+  const normalizedSeverity = normalizeSeverity(severity);
+  const panel = $("alertsPanel");
+  const list = $("alertsList");
+  const severityText = alertSeverityLabel(normalizedSeverity);
+  panel.hidden = false;
+  panel.className = `card alert-panel section-gap ${normalizedSeverity} reveal`;
+  $("alertsLevelBadge").className = `level ${normalizedSeverity}`;
+  $("alertsLevelBadge").textContent = t("alertSeverityBadge", { level: severityText });
+  $("alertsSummary").textContent = t("activeAlertSummary", { count: activeItems.length });
+  list.replaceChildren();
+
+  for (const item of activeItems.slice(0, 6)) {
+    const itemLevel = normalizeSeverity(item.level || "yellow");
+    const row = document.createElement("article");
+    row.className = `alert-item ${itemLevel}`;
+    const level = document.createElement("span");
+    level.className = "alert-item-level";
+    level.textContent = t("alertSeverityBadge", { level: alertSeverityLabel(itemLevel) });
+    const title = document.createElement("strong");
+    title.className = "alert-item-title";
+    title.textContent = item.title || t("alertFallbackTitle");
+    const expiry = item.expires
+      ? new Intl.DateTimeFormat(locale, {
+        timeZone: CITY.timezone,
+        day: "2-digit",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(new Date(item.expires))
+      : t("alertExpiryUnknown");
+    const until = document.createElement("span");
+    until.className = "alert-item-until";
+    until.textContent = t("alertValidUntil", { time: expiry });
+    row.append(level, title, until);
+    list.append(row);
+  }
 }
 
 async function loadAlerts() {
@@ -1054,50 +1108,17 @@ async function loadAlerts() {
     delete $("alertBar").dataset.fallbackLink;
     if (!activeItems.length) {
       setAlertBanner(t("noActiveAlerts"), "green");
-      $("alertsPanel").hidden = true;
+      hideActiveAlerts();
       return;
     }
 
     const headline = activeItems.find((item) => normalizeSeverity(item.level) === severity);
     setAlertBanner(headline?.title || t("activeAlertFallback"), severity);
-    const panel = $("alertsPanel");
-    const list = $("alertsList");
-    panel.hidden = false;
-    panel.classList.add("reveal");
-    list.replaceChildren();
-    const level = document.createElement("span");
-    level.className = `level ${severity}`;
-    level.textContent = severity.toUpperCase();
-    $("alertsSummary").replaceChildren(
-      document.createTextNode(t("activeRegionalLevel")),
-      level,
-      document.createTextNode(t("alertItems", { count: activeItems.length })),
-    );
-    for (const item of activeItems.slice(0, 6)) {
-      const row = document.createElement("li");
-      const badge = document.createElement("span");
-      const itemLevel = String(item.level || "yellow").toLowerCase();
-      badge.className = `level ${["green", "yellow", "orange", "red"].includes(itemLevel) ? itemLevel : "yellow"}`;
-      badge.textContent = itemLevel.toUpperCase();
-      const expiry = item.expires
-        ? new Intl.DateTimeFormat(locale, {
-          timeZone: CITY.timezone,
-          day: "2-digit",
-          month: "short",
-          hour: "2-digit",
-          minute: "2-digit",
-        }).format(new Date(item.expires))
-        : "unknown";
-      row.append(
-        document.createTextNode(`${item.title || t("alertFallbackTitle")} `),
-        badge,
-        document.createTextNode(t("alertUntil", { time: expiry })),
-      );
-      list.append(row);
-    }
+    renderActiveAlerts(activeItems, severity);
   } catch {
+    hideActiveAlerts();
     setAlertBanner(t("alertsUnavailable"), "gray");
-    $("alertBar").dataset.fallbackLink = "true";
+    $("alertBar").dataset.fallbackLink = CHMI_WARNINGS_URL;
   }
 }
 
@@ -1149,8 +1170,16 @@ function setupInteractions() {
   });
 
   $("alertBar").addEventListener("click", () => {
+    if (!$("alertsPanel").hidden) {
+      $("alertsPanel").scrollIntoView({
+        behavior: LOW_MOTION ? "auto" : "smooth",
+        block: "start",
+      });
+      $("alertsPanel").focus({ preventScroll: true });
+      return;
+    }
     if ($("alertBar").dataset.fallbackLink) {
-      window.open("https://www.meteoalarm.org/en/live/", "_blank", "noopener");
+      window.open($("alertBar").dataset.fallbackLink, "_blank", "noopener");
       return;
     }
     const expanded = $("alertBar").classList.toggle("expand");
@@ -1209,12 +1238,31 @@ async function init() {
     loadLiveData(sunCalcPromise),
     loadAlerts(),
   ]);
-  applyLocalRainChangeDemo();
+  applyLocalDemo();
 }
 
-function applyLocalRainChangeDemo() {
+function applyLocalDemo() {
   if (!["127.0.0.1", "localhost"].includes(location.hostname)) return;
   const scenario = new URLSearchParams(location.search).get("demo");
+  if (scenario === "alert-yellow") {
+    const demoTitle = t("demoAlertTitle");
+    setAlertBanner(demoTitle, "yellow");
+    renderActiveAlerts([{
+      title: demoTitle,
+      level: "yellow",
+      expires: new Date(Date.now() + 30 * 60 * 60 * 1000).toISOString(),
+    }], "yellow");
+    $("asof").textContent = t("demoLiveDataNotice");
+    document.title = t("demoAlertPageTitle");
+    return;
+  }
+  if (scenario === "alert-none") {
+    setAlertBanner(t("noActiveAlerts"), "green");
+    hideActiveAlerts();
+    $("asof").textContent = t("demoLiveDataNotice");
+    document.title = t("demoNoAlertPageTitle");
+    return;
+  }
   if (!["risk-up", "risk-down"].includes(scenario)) return;
 
   const riskIncreased = scenario === "risk-up";

@@ -7,7 +7,7 @@ export const CITY = Object.freeze({
 
 export const THRESHOLDS = Object.freeze({
   precipitationMmPerHour: 0.2,
-  precipitationProbabilityPercent: 60,
+  precipitationProbabilityPercent: 40,
 });
 
 export const NOWCAST_THRESHOLD_MM_PER_15_MINUTES = 0.05;
@@ -195,10 +195,8 @@ export function getNextRain(minutely15, now = new Date(), {
 
 export function isWetHour(hour, thresholds = THRESHOLDS) {
   const probability = Number(hour?.precipitation_probability) || 0;
-  return (
-    totalPrecipitationMm(hour) >= thresholds.precipitationMmPerHour
-    || probability >= thresholds.precipitationProbabilityPercent
-  );
+  return totalPrecipitationMm(hour) >= thresholds.precipitationMmPerHour
+    && probability >= thresholds.precipitationProbabilityPercent;
 }
 
 function addOneApiHour(timestamp) {
@@ -339,7 +337,11 @@ export function createDailySnapshot(forecast, {
   if (previousSnapshot) {
     validateSnapshot(previousSnapshot);
     const previousGenerationDate = getPragueDateKey(new Date(previousSnapshot.generatedAt));
-    if (previousGenerationDate === todayKey && previousSnapshot.days[todayKey]) {
+    const thresholdsUnchanged = Object.entries(THRESHOLDS)
+      .every(([key, value]) => previousSnapshot.thresholds?.[key] === value);
+    if (thresholdsUnchanged
+      && previousGenerationDate === todayKey
+      && previousSnapshot.days[todayKey]) {
       days[todayKey] = structuredClone(previousSnapshot.days[todayKey]);
     }
   }

@@ -12,6 +12,7 @@ import {
   getPragueDateKey,
   getPragueHourKey,
   groupHoursByApiDate,
+  isWetHour,
   selectActiveAlerts,
   selectSnapshotDay,
   totalPrecipitationMm,
@@ -31,7 +32,7 @@ function snapshotFixture() {
     },
     thresholds: {
       precipitationMmPerHour: 0.2,
-      precipitationProbabilityPercent: 60,
+      precipitationProbabilityPercent: 40,
     },
     days: {
       "2026-07-26": {
@@ -129,6 +130,21 @@ test("canonical precipitation does not double count components", () => {
     showers: 0.3,
   }), 1);
   assert.equal(totalPrecipitationMm({ rain: 0.7, showers: 0.3 }), 1);
+});
+
+test("daily YES requires both meaningful rain and a credible probability", () => {
+  assert.equal(isWetHour({
+    precipitation: 0.2,
+    precipitation_probability: 8,
+  }), false);
+  assert.equal(isWetHour({
+    precipitation: 0,
+    precipitation_probability: 80,
+  }), false);
+  assert.equal(isWetHour({
+    precipitation: 0.2,
+    precipitation_probability: 40,
+  }), true);
 });
 
 test("15-minute nowcast reports rain already in progress", () => {
@@ -370,6 +386,20 @@ test("snapshot generator validates arrays and preserves a same-day lock", () => 
   });
   validateSnapshot(generated);
   assert.equal(generated.days["2026-07-26"].verdict, "YES");
+});
+
+test("a threshold change regenerates today instead of preserving an obsolete lock", () => {
+  const previous = snapshotFixture();
+  previous.thresholds.precipitationProbabilityPercent = 60;
+  const forecast = forecastFixture();
+  forecast.hourly.precipitation = forecast.hourly.precipitation.map(() => 0);
+  forecast.hourly.rain = forecast.hourly.rain.map(() => 0);
+  forecast.hourly.precipitation_probability = forecast.hourly.precipitation_probability.map(() => 0);
+  const generated = createDailySnapshot(forecast, {
+    now: new Date("2026-07-26T11:00:00+02:00"),
+    previousSnapshot: previous,
+  });
+  assert.equal(generated.days["2026-07-26"].verdict, "NO");
 });
 
 test("first snapshot generation after date rollover may publish a new result", () => {

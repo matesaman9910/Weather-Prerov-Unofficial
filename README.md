@@ -4,6 +4,12 @@ A mobile-first, unofficial weather dashboard for Přerov, Czechia. The main ques
 
 Live site: [matesaman9910.github.io/Weather-Prerov-Unofficial](https://matesaman9910.github.io/Weather-Prerov-Unofficial/)
 
+## Version 2.7
+
+- Moves active warning details directly above Current Conditions, adds severity-aware attention styling, and provides both official ČHMÚ and Meteoalarm verification links.
+- Removes the page-edge alert glow that caused a solid visual band around the sticky warning bar.
+- Requires at least 0.2 mm and at least a 40% hourly probability before a daily hour can produce YES; threshold changes intentionally regenerate the current daily lock.
+
 ## Version 2.6
 
 - Aligns both hourly chart cards to the same internal grid and overall height.
