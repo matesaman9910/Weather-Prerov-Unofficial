@@ -4,6 +4,13 @@ A mobile-first, unofficial weather dashboard for Přerov, Czechia. The main ques
 
 Live site: [matesaman9910.github.io/Weather-Prerov-Unofficial](https://matesaman9910.github.io/Weather-Prerov-Unofficial/)
 
+## Version 2.8
+
+- Replaces the small pressure trend note with a full barometer showing current sea-level pressure, direction, and the exact three-hour change.
+- Adds a readable 24-hour pressure graph: 12 hours of observed/model history, a marked current point, and 12 hours of forecast pressure.
+- Explains what the current pressure range and latest rise, fall, or steady trend may suggest without treating pressure alone as a weather forecast.
+- Requests a fixed 12-hour history window so the graph remains useful just after midnight, with matching Czech and English wording.
+
 ## Version 2.7
 
 - Moves active warning details directly above Current Conditions, adds severity-aware attention styling, and provides both official ČHMÚ and Meteoalarm verification links.
@@ -89,7 +96,7 @@ The application remains a static site. It has no database, server, private API k
 
 - City: Přerov (`49.4551`, `17.4509`)
 - Canonical timezone: `Europe/Prague`
-- YES when an hourly record has total precipitation of at least `0.2 mm`, or precipitation probability of at least `60%`
+- YES when an hourly record has total precipitation of at least `0.2 mm` and precipitation probability of at least `40%`
 - `precipitation` is the canonical total; `rain + showers` is used only when that total is unavailable
 - Wet periods end at the next hourly boundary
 - Peaks rank by precipitation amount, then probability, then earliest timestamp

@@ -12,6 +12,42 @@ export const THRESHOLDS = Object.freeze({
 
 export const NOWCAST_THRESHOLD_MM_PER_15_MINUTES = 0.05;
 
+export function classifyPressureLevel(pressureHpa) {
+  if (pressureHpa == null) return "unavailable";
+  const pressure = Number(pressureHpa);
+  if (!Number.isFinite(pressure)) return "unavailable";
+  if (pressure < 990) return "very-low";
+  if (pressure < 1005) return "low";
+  if (pressure <= 1020) return "normal";
+  if (pressure <= 1030) return "high";
+  return "very-high";
+}
+
+export function analyzePressureTrend(currentHpa, earlierHpa, hours = 3) {
+  if (currentHpa == null || earlierHpa == null) return null;
+  const current = Number(currentHpa);
+  const earlier = Number(earlierHpa);
+  if (!Number.isFinite(current) || !Number.isFinite(earlier) || !Number.isFinite(hours) || hours <= 0) {
+    return null;
+  }
+  const delta = current - earlier;
+  const absoluteDelta = Math.abs(delta);
+  let state = "steady";
+  if (delta >= 3) state = "rising-fast";
+  else if (delta >= 1) state = "rising";
+  else if (delta > 0.5) state = "rising-slowly";
+  else if (delta <= -3) state = "falling-fast";
+  else if (delta <= -1) state = "falling";
+  else if (delta < -0.5) state = "falling-slowly";
+  return {
+    state,
+    deltaHpa: delta,
+    rateHpaPerHour: delta / hours,
+    direction: delta > 0.5 ? "up" : delta < -0.5 ? "down" : "steady",
+    significant: absoluteDelta > 0.5,
+  };
+}
+
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const API_TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
 const SEVERITY_RANK = Object.freeze({ green: 0, yellow: 1, orange: 2, red: 3 });

@@ -208,6 +208,31 @@
       color: #c3d1df;
     }
 
+    .barometer-layout { display: grid; grid-template-columns: minmax(210px, .72fr) minmax(0, 2fr); gap: 24px; align-items: stretch; }
+    .barometer-reading {
+      display: flex;
+      min-width: 0;
+      padding: 16px;
+      flex-direction: column;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface-soft);
+    }
+    .barometer-value { display: block; margin: 3px 0 10px; font-size: clamp(38px, 5vw, 54px); font-weight: 760; letter-spacing: -.045em; line-height: 1; }
+    .barometer-direction { display: inline-flex; width: fit-content; align-items: center; gap: 7px; padding: 5px 9px; border: 1px solid var(--line); border-radius: 999px; font-size: 13px; font-weight: 700; }
+    .barometer-direction.up { color: #c9f4da; background: #0d271c; border-color: #245d3d; }
+    .barometer-direction.down { color: #f3cfac; background: #2b1b0d; border-color: #845026; }
+    .barometer-direction.steady { color: #c7d5e5; background: #101c2c; border-color: #30465c; }
+    .barometer-change { margin-top: 9px; color: var(--ink); font-size: 14px; font-weight: 650; }
+    .barometer-level { margin-top: auto; padding-top: 16px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .barometer-graph { min-width: 0; }
+    .barometer-key { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 1px 0 7px; }
+    .barometer-key .chart-key-item { font-size: 12px; }
+    .barometer-swatch { display: inline-block; width: 24px; height: 3px; border-radius: 999px; background: #7fc4ef; }
+    .barometer-swatch.forecast { background: repeating-linear-gradient(90deg, #9eb0c3 0 5px, transparent 5px 8px); }
+    .barometer-chart { width: 100%; height: 210px; }
+    .barometer-summary { margin-top: 7px; }
+
     .astro-card[open], .aq-card[open] { display: grid; grid-template-rows: auto 1fr; }
     .astro-grid { display: grid; height: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
     .astro-panel { display: flex; padding: 15px; flex-direction: column; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-soft); }
@@ -430,7 +455,7 @@
     @media (max-width: 960px) {
       .hero { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .hero .nowcast-card { grid-column: 1 / -1; grid-row: 1; min-height: 0; }
-      .current-layout, .aq-layout { grid-template-columns: 1fr; }
+      .current-layout, .aq-layout, .barometer-layout { grid-template-columns: 1fr; }
       .aq-layout { grid-template-rows: auto auto auto; gap: 16px; }
       .aq-overview { padding: 0 0 16px; border-right: 0; border-bottom: 1px solid var(--line); }
       #aqStatus { margin-top: 0; }
@@ -464,6 +489,7 @@
       .days { display: flex; margin-inline: -4px; overflow-x: auto; scroll-snap-type: x proximity; }
       .day { min-width: 124px; scroll-snap-align: start; }
       .chart { height: 205px; }
+      .barometer-chart { height: 190px; }
       iframe.radar { height: 420px; }
       details.card:not([open]) { padding-bottom: 16px; }
       details.card > summary { cursor: pointer; }
@@ -600,7 +626,6 @@
               </div>
             </div>
           </div>
-          <div id="pressureTrend" class="sub tiny" style="margin-top:10px"></div>
           <div id="dailyTip" class="sub insight" data-i18n="tipInitial">Tip: —</div>
         </article>
         <details class="card astro-card" data-mobile-collapse open id="astroCard">
@@ -645,6 +670,27 @@
           </div>
         </details>
       </section>
+
+      <details class="card barometer-card section-gap" data-mobile-collapse open id="barometerCard">
+        <summary data-i18n="barometerTitle">Barometer</summary>
+        <div class="barometer-layout">
+          <section class="barometer-reading">
+            <span class="metric-label" data-i18n="barometerCurrentLabel">Current sea-level pressure</span>
+            <strong id="barometerValue" class="barometer-value">—</strong>
+            <span id="barometerDirection" class="barometer-direction steady" data-i18n="barometerLoading">Checking trend…</span>
+            <div id="barometerChange" class="barometer-change">—</div>
+            <div id="barometerInterpretation" class="barometer-level" data-i18n="barometerUnavailable">Pressure trend is unavailable.</div>
+          </section>
+          <section class="barometer-graph">
+            <div class="barometer-key" data-i18n-aria-label="barometerLegendAria">
+              <span class="chart-key-item"><span class="barometer-swatch" aria-hidden="true"></span><span data-i18n="barometerPastLegend">Past 12 hours</span></span>
+              <span class="chart-key-item"><span class="barometer-swatch forecast" aria-hidden="true"></span><span data-i18n="barometerForecastLegend">Next 12 hours (forecast)</span></span>
+            </div>
+            <canvas id="barometerChart" class="barometer-chart" aria-label="Sea-level pressure for the past and next 12 hours"></canvas>
+            <div id="barometerSummary" class="sub tiny barometer-summary" data-i18n="barometerSummaryLoading">Loading pressure history…</div>
+          </section>
+        </div>
+      </details>
 
       <section class="row chart-row section-gap">
         <details class="card chart-card" data-mobile-collapse open>
@@ -756,6 +802,6 @@
   </div>
 
   <script id="suncalcScript" src="https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.js" defer></script>
-  <script type="module" src="./scripts/app.mjs?v=2.7.0"></script>
+  <script type="module" src="./scripts/app.mjs?v=2.8.0"></script>
 </body>
 </html>

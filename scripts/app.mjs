@@ -1,6 +1,7 @@
 import {
   CITY,
   addDateKey,
+  analyzePressureTrend,
   alertPresentation,
   apiTimestampToPragueInstant,
   buildWetPeriods,
@@ -11,6 +12,7 @@ import {
   getPragueDateKey,
   getPragueHourKey,
   groupHoursByApiDate,
+  classifyPressureLevel,
   pragueLocalDateToInstant,
   recordsFromHourly,
   normalizeSeverity,
@@ -19,10 +21,10 @@ import {
   totalPrecipitationMm,
   validateSnapshot,
 } from "./weather-core.mjs";
-import { createTranslator, resolveLanguage } from "./i18n.mjs?v=2.7.0";
+import { createTranslator, resolveLanguage } from "./i18n.mjs?v=2.8.0";
 import { waitForSunCalc } from "./suncalc-loader.mjs";
 
-const APP_VERSION = "2.7.0";
+const APP_VERSION = "2.8.0";
 const LANGUAGE_STORAGE_KEY = "prerov-weather-language-v1";
 const LIVE_CACHE_KEY = "prerov-weather-live-v4";
 const SNAPSHOT_CACHE_KEY = "prerov-weather-snapshot-v1";
@@ -72,6 +74,7 @@ function applyStaticTranslations() {
   }
   $("rainChart").setAttribute("aria-label", t("rainChartAria"));
   $("tempWindChart").setAttribute("aria-label", t("tempChartAria"));
+  $("barometerChart").setAttribute("aria-label", t("barometerChartAria"));
   $("languageBtn").textContent = t("switchLanguage");
 }
 
@@ -230,6 +233,7 @@ function forecastUrl() {
     longitude: String(CITY.longitude),
     timezone: CITY.timezone,
     forecast_days: "7",
+    past_hours: "12",
     forecast_minutely_15: "24",
     minutely_15: "precipitation",
     hourly: [
@@ -643,6 +647,185 @@ function drawTemperatureWindChart(hours) {
   });
 }
 
+function pressureTrendKey(state) {
+  return `barometerTrend${state.split("-").map((part) => (
+    part[0].toUpperCase() + part.slice(1)
+  )).join("")}`;
+}
+
+function pressureLevelKey(level) {
+  return `barometerLevel${level.split("-").map((part) => (
+    part[0].toUpperCase() + part.slice(1)
+  )).join("")}`;
+}
+
+function formatPressureChange(value) {
+  return new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+    signDisplay: "always",
+  }).format(value);
+}
+
+function pressureNumber(value) {
+  return value == null ? Number.NaN : Number(value);
+}
+
+function drawBarometerChart(records, nowIndex) {
+  const canvas = $("barometerChart");
+  if (!canvas.clientWidth || !canvas.clientHeight) return;
+  const dimensions = setupCanvas(canvas);
+  if (!dimensions) {
+    $("barometerSummary").textContent = t("chartUnavailable");
+    return;
+  }
+  const { context, width, height } = dimensions;
+  const startIndex = Math.max(0, nowIndex - 12);
+  const endIndex = Math.min(records.length, nowIndex + 13);
+  const points = records.slice(startIndex, endIndex)
+    .map((record, offset) => ({
+      time: record.time,
+      pressure: pressureNumber(record.pressure_msl),
+      sourceIndex: startIndex + offset,
+    }))
+    .filter((point) => Number.isFinite(point.pressure));
+  context.clearRect(0, 0, width, height);
+  if (points.length < 2) {
+    $("barometerSummary").textContent = t("barometerUnavailable");
+    return;
+  }
+
+  const frame = { left: 46, right: 16, top: 14, bottom: 28 };
+  const plotWidth = width - frame.left - frame.right;
+  const plotHeight = height - frame.top - frame.bottom;
+  const rawMin = Math.min(...points.map((point) => point.pressure));
+  const rawMax = Math.max(...points.map((point) => point.pressure));
+  const minimum = Math.floor(rawMin - 1);
+  const maximum = Math.ceil(rawMax + 1);
+  const span = Math.max(2, maximum - minimum);
+  const x = (index) => frame.left + index / Math.max(1, points.length - 1) * plotWidth;
+  const y = (pressure) => frame.top + (maximum - pressure) / span * plotHeight;
+
+  context.save();
+  context.font = "11px system-ui";
+  context.textBaseline = "middle";
+  for (let row = 0; row < 4; row += 1) {
+    const value = maximum - span * row / 3;
+    const rowY = frame.top + plotHeight * row / 3;
+    context.beginPath();
+    context.moveTo(frame.left, rowY);
+    context.lineTo(width - frame.right, rowY);
+    context.strokeStyle = "#26384a";
+    context.lineWidth = 1;
+    context.stroke();
+    context.fillStyle = "#9eb0c3";
+    context.textAlign = "right";
+    context.fillText(`${Math.round(value)}`, frame.left - 7, rowY);
+  }
+
+  const nowPointIndex = Math.max(0, points.findIndex((point) => point.sourceIndex >= nowIndex));
+  const nowX = x(nowPointIndex);
+  context.beginPath();
+  context.moveTo(nowX, frame.top);
+  context.lineTo(nowX, height - frame.bottom);
+  context.setLineDash([3, 4]);
+  context.strokeStyle = "#516a82";
+  context.stroke();
+  context.setLineDash([]);
+
+  const drawSegment = (from, to, color, dashed = false) => {
+    if (to <= from) return;
+    context.beginPath();
+    for (let index = from; index <= to; index += 1) {
+      const pointX = x(index);
+      const pointY = y(points[index].pressure);
+      if (index === from) context.moveTo(pointX, pointY);
+      else context.lineTo(pointX, pointY);
+    }
+    if (dashed) context.setLineDash([6, 5]);
+    context.strokeStyle = color;
+    context.lineWidth = 2.5;
+    context.lineJoin = "round";
+    context.lineCap = "round";
+    context.stroke();
+    context.setLineDash([]);
+  };
+  drawSegment(0, nowPointIndex, "#7fc4ef");
+  drawSegment(nowPointIndex, points.length - 1, "#9eb0c3", true);
+
+  context.beginPath();
+  context.arc(nowX, y(points[nowPointIndex].pressure), 4, 0, Math.PI * 2);
+  context.fillStyle = "#edf4fb";
+  context.fill();
+  context.strokeStyle = "#7fc4ef";
+  context.lineWidth = 2;
+  context.stroke();
+
+  context.fillStyle = "#9eb0c3";
+  context.font = "11px system-ui";
+  context.textAlign = "center";
+  const labelStep = width < 520 ? 6 : 3;
+  for (let index = 0; index < points.length; index += labelStep) {
+    if (Math.abs(index - nowPointIndex) <= 1) continue;
+    context.fillText(points[index].time.slice(11, 16), x(index), height - 8);
+  }
+  context.fillStyle = "#edf4fb";
+  context.font = "700 10px system-ui";
+  context.fillText(t("barometerNowLabel"), nowX, height - 8);
+  context.restore();
+
+  const sixHourIndex = Math.min(records.length - 1, nowIndex + 6);
+  const currentPressure = pressureNumber(records[nowIndex]?.pressure_msl);
+  const futurePressure = pressureNumber(records[sixHourIndex]?.pressure_msl);
+  const futureChange = Number.isFinite(currentPressure) && Number.isFinite(futurePressure)
+    ? futurePressure - currentPressure : null;
+  const futureDirection = !Number.isFinite(futureChange) || Math.abs(futureChange) < 0.5
+    ? t("barometerFutureSteady")
+    : t(futureChange > 0 ? "barometerFutureUp" : "barometerFutureDown");
+  $("barometerSummary").textContent = Number.isFinite(futureChange)
+    ? t("barometerGraphSummary", {
+      min: Math.round(rawMin),
+      max: Math.round(rawMax),
+      direction: futureDirection,
+      amount: new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(Math.abs(futureChange)),
+    })
+    : t("barometerGraphSummaryNoForecast", {
+      min: Math.round(rawMin),
+      max: Math.round(rawMax),
+    });
+}
+
+function renderBarometer(records, nowIndex, currentPressureOverride) {
+  const currentPressure = Number.isFinite(currentPressureOverride)
+    ? currentPressureOverride : pressureNumber(records[nowIndex]?.pressure_msl);
+  const historyIndex = Math.max(0, nowIndex - 3);
+  const historyHours = Math.max(1, nowIndex - historyIndex);
+  const earlierPressure = pressureNumber(records[historyIndex]?.pressure_msl);
+  const trend = analyzePressureTrend(currentPressure, earlierPressure, historyHours);
+  const level = classifyPressureLevel(currentPressure);
+  $("barometerValue").textContent = Number.isFinite(currentPressure)
+    ? `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(currentPressure)} hPa`
+    : "—";
+  const directionNode = $("barometerDirection");
+  if (!trend) {
+    directionNode.className = "barometer-direction steady";
+    directionNode.textContent = t("barometerUnavailable");
+    $("barometerChange").textContent = "—";
+    $("barometerInterpretation").textContent = t("barometerUnavailable");
+    drawBarometerChart(records, nowIndex);
+    return;
+  }
+  const arrow = trend.direction === "up" ? "▲" : trend.direction === "down" ? "▼" : "→";
+  directionNode.className = `barometer-direction ${trend.direction}`;
+  directionNode.textContent = `${arrow} ${t(pressureTrendKey(trend.state))}`;
+  $("barometerChange").textContent = t("barometerChange", {
+    amount: formatPressureChange(trend.deltaHpa),
+    hours: historyHours,
+  });
+  $("barometerInterpretation").textContent = `${t(pressureLevelKey(level))} ${t(`${pressureTrendKey(trend.state)}Advice`)}`;
+  drawBarometerChart(records, nowIndex);
+}
+
 function renderLiveDailyStatus(forecast, records) {
   const liveCheck = $("todayLiveCheck");
   const dateKey = lockedSelection?.dateKey || getPragueDateKey(new Date());
@@ -726,15 +909,7 @@ function renderCurrentConditions(forecast, records, nowIndex) {
   $("currentUv").textContent = Number.isFinite(uvNow) ? uvNow.toFixed(1) : "—";
   $("currentUvMax").textContent = Number.isFinite(uvMax) ? uvMax.toFixed(1) : "—";
 
-  const previousPressure = records[Math.max(0, nowIndex - 3)]?.pressure_msl;
-  $("pressureTrend").textContent = "";
-  if (Number.isFinite(pressure) && Number.isFinite(previousPressure)) {
-    const difference = Math.round(pressure - previousPressure);
-    $("pressureTrend").textContent = t("pressureTrend", {
-      arrow: difference > 0 ? "▲" : difference < 0 ? "▼" : "→",
-      value: difference,
-    });
-  }
+  renderBarometer(records, nowIndex, pressure);
 }
 
 function renderNextRain(forecast) {
@@ -1027,6 +1202,10 @@ async function loadLiveData(sunCalcPromise) {
       $("todayLiveProbability").textContent = t("liveProbabilityUnavailable");
       $("todayLiveAdvice").textContent = t("liveAdviceUnavailable");
       $("tomorrowLiveNote").textContent = t("tomorrowLiveUnavailable");
+      $("barometerDirection").textContent = t("barometerUnavailable");
+      $("barometerChange").textContent = "—";
+      $("barometerInterpretation").textContent = t("barometerUnavailable");
+      $("barometerSummary").textContent = t("barometerUnavailable");
       $("aqStatus").textContent = t("airDataUnavailable");
       $("dailyTip").textContent = t("tipUnavailable", { error: error.message });
     }
@@ -1139,6 +1318,14 @@ function setupInteractions() {
         requestAnimationFrame(() => {
           drawRainChart(lastHours24);
           drawTemperatureWindChart(lastHours24);
+          if (details.id === "barometerCard" && latestLiveForecast && latestLiveRecords) {
+            const currentIndex = findCurrentHourIndex(latestLiveForecast.hourly.time);
+            renderBarometer(
+              latestLiveRecords,
+              currentIndex,
+              latestLiveForecast.current?.pressure_msl,
+            );
+          }
         });
       }
     });
@@ -1223,6 +1410,14 @@ function setupInteractions() {
       if (lastHours24) {
         drawRainChart(lastHours24);
         drawTemperatureWindChart(lastHours24);
+        if (latestLiveForecast && latestLiveRecords && $("barometerCard").open) {
+          const currentIndex = findCurrentHourIndex(latestLiveForecast.hourly.time);
+          renderBarometer(
+            latestLiveRecords,
+            currentIndex,
+            latestLiveForecast.current?.pressure_msl,
+          );
+        }
       }
     }, 120);
   });

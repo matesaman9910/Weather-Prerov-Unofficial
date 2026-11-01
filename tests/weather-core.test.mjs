@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   CITY,
   addDateKey,
+  analyzePressureTrend,
   alertPresentation,
   apiTimestampDateKey,
   buildWetPeriods,
@@ -13,6 +14,7 @@ import {
   getPragueHourKey,
   groupHoursByApiDate,
   isWetHour,
+  classifyPressureLevel,
   selectActiveAlerts,
   selectSnapshotDay,
   totalPrecipitationMm,
@@ -145,6 +147,29 @@ test("daily YES requires both meaningful rain and a credible probability", () =>
     precipitation: 0.2,
     precipitation_probability: 40,
   }), true);
+});
+
+test("barometer classifies absolute pressure bands", () => {
+  assert.equal(classifyPressureLevel(988), "very-low");
+  assert.equal(classifyPressureLevel(1000), "low");
+  assert.equal(classifyPressureLevel(1013), "normal");
+  assert.equal(classifyPressureLevel(1026), "high");
+  assert.equal(classifyPressureLevel(1034), "very-high");
+  assert.equal(classifyPressureLevel(null), "unavailable");
+});
+
+test("barometer reports direction and three-hour change", () => {
+  assert.deepEqual(analyzePressureTrend(1018, 1014, 3), {
+    state: "rising-fast",
+    deltaHpa: 4,
+    rateHpaPerHour: 4 / 3,
+    direction: "up",
+    significant: true,
+  });
+  assert.equal(analyzePressureTrend(1008, 1010, 3).state, "falling");
+  assert.equal(analyzePressureTrend(1013.2, 1013, 3).state, "steady");
+  assert.equal(analyzePressureTrend(undefined, 1013, 3), null);
+  assert.equal(analyzePressureTrend(null, 1013, 3), null);
 });
 
 test("15-minute nowcast reports rain already in progress", () => {
